@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Lex, Yacc Output
+y.tab.c
+y.tab.h
+*.yy.c
+
+# macOS
+._*
+.DS_Store
