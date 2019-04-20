@@ -5,7 +5,15 @@
 #include "ast.h"
 
 tree_t *syntax_tree;
-node_t* current_parent_node;
+node_t* current_func_def;
+node_t* current_arg_def_block;
+node_t* current_arg_def;
+node_t* current_statement_block;
+node_t* current_statement;
+node_t* current_assign;
+node_t* current_func_call;
+node_t* current_arg_block;
+node_t* current_arg;
 node_t* current_scope;
 
 node_t* create_node(node_t *parent, node_type_e node_type);
@@ -21,16 +29,14 @@ symbol_t* get_literal_num_symbol(double value);
 symbol_t* get_literal_str_symbol(char* strVal);
 symbol_t* get_literal_bool_symbol(bool boolVal);
 
-// nodes that don't set themselves as parents
-void handle_function_def(node_t* arg_def_block, node_t* statement_block);
-void handle_func_call(symbol_t* func, node_t* arg_block);
+void handle_function_def(char* name, data_types_e return_type);
+void handle_func_call(symbol_t* func);
 void handle_arg_def(data_types_e type, char* symbol_name);
 void handle_assignment_to_identifier(char* iden_name_left, char *iden_name_right);
 void handle_assignment_to_literal(char* iden_name, data_types_e type, symbol_value val);
 //void handle_assignment_to_expr(char* iden_name, node_t* expr);
 
-// nodes that set themselves as parents
-void handle_global_block(); // returns void because it's the top level node
+void handle_global_block();
 node_t* handle_arg_def_block();
 node_t* handle_statement_block();
 node_t* handle_arg_block();

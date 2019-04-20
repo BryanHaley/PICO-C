@@ -31,18 +31,19 @@ global_block
     ;
 
 function_def
-    : { $$ = handle_arg_def_block(); } { $$ = handle_statement_block(); }
+    : { current_func_def = create_node(syntax_tree->global_block, NODE_FUNC_DEF); }
+      { handle_arg_def_block(); handle_statement_block(); }
     VAR IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
     {
-        handle_function_def($<nodeValue>1, $<nodeValue>2);
+        handle_function_def($4, TYPE_VAR);
     }
     ;
 
 function_call
-    : { $$ = handle_arg_block(); }
+    : { handle_arg_block(); }
     IDENTIFIER '(' argument_block ')' 
     { 
-        handle_func_call(get_pointer_symbol(current_scope, $2, false, false), $<nodeValue>1);
+        handle_func_call(get_pointer_symbol(current_scope, $2, false, false));
     }
     ;
 
@@ -89,20 +90,20 @@ argument_block
 argument
     : IDENTIFIER 
     {
-        node_t *arg = create_node(current_parent_node, NODE_ARG);
+        node_t *arg = create_node(current_arg_block, NODE_ARG);
         ((arg_data*) arg->data)->identifier = 
             get_pointer_symbol(current_scope, $1, false, false);
         
         node_t* child[1] = { arg };
-        add_child_to_parent_block(current_parent_node, 1, child);
+        add_child_to_parent_block(current_arg_block, 1, child);
     }
     | LITERAL_NUM 
     {
-        node_t *arg = create_node(current_parent_node, NODE_ARG);
+        node_t *arg = create_node(current_arg_block, NODE_ARG);
         ((arg_data*) arg->data)->identifier = get_literal_num_symbol($1);
         
         node_t* child[1] = { arg };
-        add_child_to_parent_block(current_parent_node, 1, child);
+        add_child_to_parent_block(current_arg_block, 1, child);
     }
     ;
 %%

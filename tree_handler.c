@@ -58,7 +58,7 @@ parent_block_data* add_child_to_parent_block(node_t* parent,
         int total_children = parent_data->num_children+num_new_children;
         int startAt = parent_data->num_children;
 
-        parent_data->num_children = num_new_children;
+        parent_data->num_children = total_children;
         parent_data->children = (node_t**) realloc(parent_data->children, 
             total_children*sizeof(node_t*));
 
@@ -145,17 +145,23 @@ void handle_global_block()
     current_scope = global_block;
 }
 
-void handle_function_def(node_t* arg_def_block, node_t* statement_block)
+void handle_function_def(char* name, data_types_e return_type)
 {
     if (current_scope != syntax_tree->global_block)
     {
         yyerror("Functions can only be defined in the global scope");
     }
 
-    node_t *func_def_node = create_node(syntax_tree->global_block, NODE_FUNC_DEF);
+    node_t* func_def_node = current_func_def;
+    func_def_data* data = (func_def_data*) func_def_node->data;
 
-    node_t* new_children[2] = { arg_def_block, statement_block };
-    add_child_to_parent_block(func_def_node, 2, new_children);
+    data->return_type = return_type;
+    data->identifier = get_pointer_symbol(current_scope, name, true, true);
+    data->arg_def_block = current_arg_def_block;
+    data->statement_block = current_statement_block;
+
+    current_arg_def_block->parent = func_def_node;
+    current_statement_block->parent = func_def_node;
 
     node_t* new_gb_children[1] = { func_def_node };
     add_child_to_parent_block(syntax_tree->global_block, 1, new_gb_children);
@@ -163,7 +169,7 @@ void handle_function_def(node_t* arg_def_block, node_t* statement_block)
     current_scope = func_def_node;
 }
 
-void handle_func_call(symbol_t* func, node_t* arg_block)
+void handle_func_call(symbol_t* func)
 {
     if (current_scope == syntax_tree->global_block)
     {
@@ -174,12 +180,15 @@ void handle_func_call(symbol_t* func, node_t* arg_block)
     func_call_data *data = (func_call_data*) func_call->data;
 
     data->identifier = func;
-    data->argument_block = arg_block;
+    data->argument_block = current_arg_block;
+    current_arg_block->parent = func_call;
+
+    current_func_call = func_call;
 }
 
 void handle_arg_def(data_types_e type, char* symbol_name)
 {
-    node_t *arg_def_node = create_node(current_parent_node, NODE_ARG_DEF);
+    node_t *arg_def_node = create_node(current_arg_def_block, NODE_ARG_DEF);
     arg_def_data *arg_def_node_data = (arg_def_data*) arg_def_node->data;
 
     switch (type)
@@ -198,12 +207,14 @@ void handle_arg_def(data_types_e type, char* symbol_name)
     }
     
     node_t* child[1] = { arg_def_node };
-    add_child_to_parent_block(current_parent_node, 1, child);
+    add_child_to_parent_block(current_arg_def_block, 1, child);
+
+    current_arg_def = arg_def_node;
 }
 
 void handle_assignment_to_identifier(char* iden_name_left, char* iden_name_right)
 {
-    node_t *assn_node = create_node(current_parent_node, NODE_ASSIGN);
+    node_t *assn_node = create_node(current_statement_block, NODE_ASSIGN);
     assign_data *assign_node_data = (assign_data*) assn_node->data;
 
     assign_node_data->left_operand = get_symbol_by_identifier(current_scope, iden_name_left);
@@ -212,12 +223,14 @@ void handle_assignment_to_identifier(char* iden_name_left, char* iden_name_right
     assign_node_data->right_operand_is_expression = false;
 
     node_t* child[1] = { assn_node };
-    add_child_to_parent_block(current_parent_node, 1, child);
+    add_child_to_parent_block(current_statement_block, 1, child);
+
+    current_assign = assn_node;
 }
 
 void handle_assignment_to_literal(char* iden_name, data_types_e type, symbol_value val)
 {
-    node_t *assn_node = create_node(current_parent_node, NODE_ASSIGN);
+    node_t *assn_node = create_node(current_statement_block, NODE_ASSIGN);
     assign_data *assign_node_data = (assign_data*) assn_node->data;
 
     assign_node_data->left_operand = get_symbol_by_identifier(current_scope, iden_name);
@@ -241,14 +254,16 @@ void handle_assignment_to_literal(char* iden_name, data_types_e type, symbol_val
     assign_node_data->right_operand_is_expression = false;
 
     node_t* child[1] = { assn_node };
-    add_child_to_parent_block(current_parent_node, 1, child); 
+    add_child_to_parent_block(current_statement_block, 1, child); 
+
+    current_assign = assn_node;
 }
 
 node_t* handle_arg_def_block()
 {
     node_t *arg_def_block = create_node(NULL, NODE_ARG_DEF_BLOCK);
 
-    current_parent_node = arg_def_block;
+    current_arg_def_block = arg_def_block;
     return arg_def_block;
 }
 
@@ -256,7 +271,7 @@ node_t* handle_statement_block()
 {
     node_t *stmnt_block = create_node(current_scope, NODE_STMNT_BLOCK);
 
-    current_parent_node = stmnt_block;
+    current_statement_block = stmnt_block;
     return stmnt_block;
 }
 
@@ -264,7 +279,7 @@ node_t* handle_arg_block()
 {
     node_t *arg_block = create_node(NULL, NODE_ARG_BLOCK);
 
-    current_parent_node = arg_block;
+    current_arg_block = arg_block;
     return arg_block;
 }
 

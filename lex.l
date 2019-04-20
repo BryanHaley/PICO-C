@@ -14,6 +14,7 @@ IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 #include "ast.h"
 #include "parse.h"
 #include "y.tab.h"
+#include "code_gen.h"
 %}
 
 %% 
@@ -50,5 +51,16 @@ var                 { yylval.stringValue = strdup(yytext); return VAR; }
 int main(int argc, char** args) 
 {    
     yyparse();
+
+    if (!err_in_lex && !err_in_parse)
+    {
+        generate_code(syntax_tree);
+    }
+
+    else
+    {
+        fprintf(stderr, "Error in front-end. Aborting code generation.");
+    }
+
     return 0; 
 }
