@@ -1,6 +1,8 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdbool.h>
+
 typedef enum
 {
 	TYPE_VAR,
@@ -10,11 +12,18 @@ typedef enum
 	TYPE_LITERAL_BOOL,
 } data_types_e;
 
+typedef union
+{
+    double numVal;
+    char* strVal;
+    bool boolVal;
+} symbol_value;
+
 typedef struct 
 {
 	data_types_e type;
+        symbol_value val;
 	char *name;
-	double value;
 } symbol_t;
 
 typedef enum 
@@ -71,11 +80,18 @@ typedef struct
 	node_t *statement;
 } statement_data;
 
+typedef union
+{
+    symbol_t *symbol;
+    node_t* expr;
+} assign_right_operand;
+
 typedef struct 
 {
-	node_type_e statement_type;
 	symbol_t *left_operand;
-	symbol_t *right_operand;
+	assign_right_operand right_operand;
+
+        bool right_operand_is_expression;
 } assign_data;
 
 typedef struct 
