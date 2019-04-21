@@ -18,33 +18,39 @@ IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 %}
 
 %% 
-<<EOF>>             { return 0; }
-\n                  { return 0; }
+<<EOF>>                 { return 0; }
+\n                      { return 0; }
 
-[ \t\v\n\f]         { /* consume whitespace */ }
-"//"[^\n]*          { /* consume //-comment */ }
+[ \t\v\n\f]             { /* consume whitespace */ }
+"//"[^\n]*              { /* consume //-comment */ }
 
-var                 { yylval.stringValue = strdup(yytext); return VAR; }
+var                     { return VAR; }
+string                  { return STRING; }
+bool                    { return BOOL; }
 
-{L}({L}|{D})*       { yylval.stringValue = strdup(yytext); return IDENTIFIER; }
+true                    { yylval.boolValue = true; return LITERAL_BOOL; }
+false                   { yylval.boolValue = false; return LITERAL_BOOL; }
 
-"("                 { return('('); }
-")"                 { return(')'); }
-"{"                 { return('{'); }
-"}"                 { return('}'); }
-"="                 { return('='); }
-";"                 { return(';'); }
-","                 { return(','); }
+L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_STRING; }
 
+{D}+                    { yylval.varValue = atoi(yytext); return LITERAL_NUM; }
+({D}+)?"."({D}+)        { yylval.varValue = atof(yytext); return LITERAL_NUM; }
 
-{D}+                { yylval.varValue = atoi(yytext); return LITERAL_NUM; }
-({D}+)?"."({D}+)    { yylval.varValue = atof(yytext); return LITERAL_NUM; }
+{L}({L}|{D})*           { yylval.stringValue = strdup(yytext); return IDENTIFIER; }
 
-.                   { 
-                        printf("Unrecognized token: %s\n", yytext); 
-                        err_in_lex=true; 
-                        yyerror("Error during parsing"); 
-                    }
+"("                     { return('('); }
+")"                     { return(')'); }
+"{"                     { return('{'); }
+"}"                     { return('}'); }
+"="                     { return('='); }
+";"                     { return(';'); }
+","                     { return(','); }
+
+.                       { 
+                            printf("Unrecognized token: %s\n", yytext); 
+                            err_in_lex=true; 
+                            yyerror("Error during parsing"); 
+                        }
 
 %%
 
@@ -59,7 +65,7 @@ int main(int argc, char** args)
 
     else
     {
-        fprintf(stderr, "Error in front-end. Aborting code generation.");
+        fprintf(stderr, "Error in front-end. Aborting code generation.\n");
     }
 
     return 0; 

@@ -1,4 +1,4 @@
-%token VAR IDENTIFIER LITERAL_NUM
+%token VAR STRING BOOL IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
 
 %{
 #include <stdio.h>
@@ -13,11 +13,13 @@
 {
     double varValue;
     char *stringValue;
+    bool boolValue;
     void *nodeValue;
 }
 
-%type<stringValue> VAR IDENTIFIER
+%type<stringValue> IDENTIFIER LITERAL_STRING
 %type<varValue> LITERAL_NUM
+%type<boolValue> LITERAL_BOOL
 %type<nodeValue> function_def argument_defintion function_call
 
 %%
@@ -37,6 +39,20 @@ function_def
     {
         handle_function_def($4, TYPE_VAR);
     }
+    | { free(current_func_def); free(current_arg_block); free(current_statement_block); }
+      { current_func_def = create_node(syntax_tree->global_block, NODE_FUNC_DEF); }
+      { handle_arg_def_block(); handle_statement_block(); }
+    BOOL IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
+    {
+        handle_function_def($5, TYPE_BOOL);
+    }
+    | { free(current_func_def); free(current_arg_block); free(current_statement_block); }
+      { current_func_def = create_node(syntax_tree->global_block, NODE_FUNC_DEF); }
+      { handle_arg_def_block(); handle_statement_block(); }
+    STRING IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
+    {
+        handle_function_def($5, TYPE_STRING);
+    }
     ;
 
 function_call
@@ -55,9 +71,11 @@ argument_defintion_block
 
 argument_defintion
     : VAR IDENTIFIER 
-    {
-         handle_arg_def(TYPE_VAR, $2);
-    }
+    { handle_arg_def(TYPE_VAR, $2); }
+    | BOOL IDENTIFIER
+    { handle_arg_def(TYPE_BOOL, $2); }
+    | STRING IDENTIFIER
+    { handle_arg_def(TYPE_STRING, $2); }
     ;
 
 statement_block

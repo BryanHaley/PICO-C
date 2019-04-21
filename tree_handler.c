@@ -96,6 +96,28 @@ symbol_t* get_var_symbol(node_t* scope, char* name, double value,
     return symbol;
 }
 
+symbol_t* get_bool_symbol(node_t* scope, char* name, bool value, 
+                         bool create_if_DNE, bool fail_if_exists)
+{
+    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
+    symbol->type = TYPE_VAR;
+    symbol->name = name;
+    symbol->val.boolVal = value;
+
+    return symbol;
+}
+
+symbol_t* get_string_symbol(node_t* scope, char* name, char* value, 
+                         bool create_if_DNE, bool fail_if_exists)
+{
+    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
+    symbol->type = TYPE_VAR;
+    symbol->name = name;
+    symbol->val.strVal = value;
+
+    return symbol;
+}
+
 symbol_t* get_pointer_symbol(node_t* scope, char* name, 
                              bool create_if_DNE, bool fail_if_exists)
 {
@@ -196,6 +218,14 @@ void handle_arg_def(data_types_e type, char* symbol_name)
         case (TYPE_VAR):
             arg_def_node_data->identifier = get_var_symbol(current_scope, symbol_name, 
                                                 0, true, true);
+            break;
+        case (TYPE_BOOL):
+            arg_def_node_data->identifier = get_bool_symbol(current_scope, symbol_name,
+                                                false, true, true);
+            break;
+        case (TYPE_STRING):
+            arg_def_node_data->identifier = get_string_symbol(current_scope, symbol_name,
+                                                "", true, true);
             break;
         case (TYPE_POINTER):
             arg_def_node_data->identifier = get_pointer_symbol(current_scope, symbol_name, 

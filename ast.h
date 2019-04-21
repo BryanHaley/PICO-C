@@ -6,7 +6,9 @@
 typedef enum
 {
     TYPE_VAR,
+    TYPE_STRING,
     TYPE_POINTER,
+    TYPE_BOOL,
     TYPE_LITERAL_NUM,
     TYPE_LITERAL_STRING,
     TYPE_LITERAL_BOOL,

@@ -23,6 +23,10 @@ parent_block_data* add_child_to_parent_block(node_t* parent,
 symbol_t* get_symbol_by_identifier(node_t* scope, char* identifier);
 symbol_t* get_var_symbol(node_t* scope, char* name, double value, 
                          bool create_if_DNE, bool fail_if_exists);
+symbol_t* get_bool_symbol(node_t* scope, char* name, bool value, 
+                         bool create_if_DNE, bool fail_if_exists);
+symbol_t* get_string_symbol(node_t* scope, char* name, char* value, 
+                         bool create_if_DNE, bool fail_if_exists);
 symbol_t* get_pointer_symbol(node_t* scope, char* name, 
                              bool create_if_DNE, bool fail_if_exists);
 symbol_t* get_literal_num_symbol(double value);
