@@ -11,56 +11,33 @@
 
 %union
 {
-    double varValue;
-    char *stringValue;
-    bool boolValue;
-    void *nodeValue;
+    double  varValue;
+    char*   stringValue;
+    bool    boolValue;
+    node_t* nodeValue;
 }
 
-%type<stringValue> IDENTIFIER LITERAL_STRING
+%type<stringValue> IDENTIFIER LITERAL_STRING type
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
-%type<nodeValue> function_def argument_defintion function_call
+%type<nodeValue> function_def function_call argument_defintion assignment expression
+%type<nodeValue> term_expression fact_expression primary declaration
+%type<nodeValue> declaration_with_assign
 
 %%
 program
-    : /* empty */
-    | { handle_global_block(); } global_block 
+    : { create_global_block(); } global_block 
     ;
 
 global_block
     : function_def
+    { add_func_def_to_global_block($1); }
     ;
 
 function_def
-    : { current_func_def = create_node(syntax_tree->global_block, NODE_FUNC_DEF); }
-      { handle_arg_def_block(); handle_statement_block(); }
-    VAR IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
-    {
-        handle_function_def($4, TYPE_VAR);
-    }
-    | { free(current_func_def); free(current_arg_block); free(current_statement_block); }
-      { current_func_def = create_node(syntax_tree->global_block, NODE_FUNC_DEF); }
-      { handle_arg_def_block(); handle_statement_block(); }
-    BOOL IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
-    {
-        handle_function_def($5, TYPE_BOOL);
-    }
-    | { free(current_func_def); free(current_arg_block); free(current_statement_block); }
-      { current_func_def = create_node(syntax_tree->global_block, NODE_FUNC_DEF); }
-      { handle_arg_def_block(); handle_statement_block(); }
-    STRING IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
-    {
-        handle_function_def($5, TYPE_STRING);
-    }
-    ;
-
-function_call
-    : { handle_arg_block(); }
-    IDENTIFIER '(' argument_block ')' 
-    { 
-        handle_func_call(get_pointer_symbol(current_scope, $2, false, false));
-    }
+    : { clear_arg_def_block(); clear_statement_block(); }
+    type IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
+    { $$ = create_func_def_node($2, $3, current_arg_def_block, current_statement_block); }
     ;
 
 argument_defintion_block
@@ -70,12 +47,8 @@ argument_defintion_block
     ;
 
 argument_defintion
-    : VAR IDENTIFIER 
-    { handle_arg_def(TYPE_VAR, $2); }
-    | BOOL IDENTIFIER
-    { handle_arg_def(TYPE_BOOL, $2); }
-    | STRING IDENTIFIER
-    { handle_arg_def(TYPE_STRING, $2); }
+    : type IDENTIFIER 
+    { $$ = create_arg_def_node($1, $2); }
     ;
 
 statement_block
@@ -85,18 +58,25 @@ statement_block
 
 statement
     : ';'
+    { handle_null_stmnt_node(); }
     | assignment ';'
+    { handle_stmnt_node($1); }
     | function_call ';'
+    { handle_stmnt_node($1); }
+    | declaration ';'
+    { handle_stmnt_node($1); }
+    | declaration_with_assign ';'
+    { handle_stmnt_node($1); }
     ;
 
 assignment
-    : IDENTIFIER '=' IDENTIFIER 
-    { handle_assignment_to_identifier($1, $3); }
-    | IDENTIFIER '=' LITERAL_NUM 
-    {
-        symbol_value val = { $3 };
-        handle_assignment_to_literal($1, TYPE_LITERAL_NUM, val); 
-    }
+    : IDENTIFIER '=' expression
+    { $$ = create_assign_node($1, $3); }
+    ;
+
+function_call
+    : IDENTIFIER '(' { clear_arg_block(); } argument_block ')' 
+    { $$ = create_func_call_node($1, current_arg_block); }
     ;
 
 argument_block
@@ -106,23 +86,61 @@ argument_block
     ;
 
 argument
-    : IDENTIFIER 
-    {
-        node_t *arg = create_node(current_arg_block, NODE_ARG);
-        ((arg_data*) arg->data)->identifier = 
-            get_pointer_symbol(current_scope, $1, false, false);
-        
-        node_t* child[1] = { arg };
-        add_child_to_parent_block(current_arg_block, 1, child);
-    }
-    | LITERAL_NUM 
-    {
-        node_t *arg = create_node(current_arg_block, NODE_ARG);
-        ((arg_data*) arg->data)->identifier = get_literal_num_symbol($1);
-        
-        node_t* child[1] = { arg };
-        add_child_to_parent_block(current_arg_block, 1, child);
-    }
+    : expression
+    { handle_arg_node($1); }
+    ;
+
+declaration
+    : type IDENTIFIER
+    { $$ = create_declaration_node($1, $2); }
+    ;
+
+declaration_with_assign
+    : type IDENTIFIER '=' expression
+    { $$ = create_declaration_with_assign_node($1, $2, $4); }
+    ;
+
+expression
+    : '(' expression ')'
+    { $$ = $2; }
+    | fact_expression
+    { $$ = $1; }
+    | term_expression
+    { $$ = $1; }
+    | primary
+    { $$ = $1; }
+    ;
+
+fact_expression
+    : expression '*' expression
+    { $$ = create_bin_expr_node($1, $3, '*'); }
+    | expression '/' expression
+    { $$ = create_bin_expr_node($1, $3, '/'); }
+    ;
+
+term_expression
+    : expression '+' expression
+    { $$ = create_bin_expr_node($1, $3, '+'); }
+    | expression '-' expression
+    { $$ = create_bin_expr_node($1, $3, '-'); }
+    ;
+
+primary
+    : LITERAL_NUM
+    { $$ = create_primary_node_num(PRI_LITERAL_NUM, $1); }
+    | LITERAL_STRING
+    { $$ = create_primary_node_str(PRI_LITERAL_STR, $1); }
+    | IDENTIFIER
+    { $$ = create_primary_node_str(PRI_IDENTIFIER, $1); }
+    | function_call
+    { $$ = create_primary_node_nde(PRI_FUNC_CALL, $1); }
+    ;
+
+type
+    : VAR { $$ = "var"; }
+    | BOOL { $$ = "bool"; }
+    | STRING { $$ = "string"; }
+    | IDENTIFIER { $$ = $1; }
     ;
 %%
 

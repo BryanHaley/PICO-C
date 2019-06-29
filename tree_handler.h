@@ -5,44 +5,35 @@
 #include "ast.h"
 
 tree_t *syntax_tree;
-node_t* current_func_def;
 node_t* current_arg_def_block;
-node_t* current_arg_def;
 node_t* current_statement_block;
-node_t* current_statement;
-node_t* current_assign;
-node_t* current_func_call;
 node_t* current_arg_block;
-node_t* current_arg;
-node_t* current_scope;
 
-node_t* create_node(node_t *parent, node_type_e node_type);
+node_t* create_node(node_type_e node_type);
 parent_block_data* add_child_to_parent_block(node_t* parent, 
                                              int num_children, node_t** children);
 
-symbol_t* get_symbol_by_identifier(node_t* scope, char* identifier);
-symbol_t* get_var_symbol(node_t* scope, char* name, double value, 
-                         bool create_if_DNE, bool fail_if_exists);
-symbol_t* get_bool_symbol(node_t* scope, char* name, bool value, 
-                         bool create_if_DNE, bool fail_if_exists);
-symbol_t* get_string_symbol(node_t* scope, char* name, char* value, 
-                         bool create_if_DNE, bool fail_if_exists);
-symbol_t* get_pointer_symbol(node_t* scope, char* name, 
-                             bool create_if_DNE, bool fail_if_exists);
-symbol_t* get_literal_num_symbol(double value);
-symbol_t* get_literal_str_symbol(char* strVal);
-symbol_t* get_literal_bool_symbol(bool boolVal);
+void create_global_block();
+void add_func_def_to_global_block(node_t* node);
 
-void handle_function_def(char* name, data_types_e return_type);
-void handle_func_call(symbol_t* func);
-void handle_arg_def(data_types_e type, char* symbol_name);
-void handle_assignment_to_identifier(char* iden_name_left, char *iden_name_right);
-void handle_assignment_to_literal(char* iden_name, data_types_e type, symbol_value val);
-//void handle_assignment_to_expr(char* iden_name, node_t* expr);
+node_t* create_func_def_node(char* return_type, char* identifier, node_t* arg_def_block, node_t* stmnt_block);
+node_t* create_func_call_node(char* identifier, node_t* arg_block);
+node_t* create_arg_def_node(char* type, char* identifier);
+node_t* create_assign_node(char* identifier, node_t* expr);
+node_t* create_declaration_node(char* type, char* identifier);
+node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t* expr);
 
-void handle_global_block();
-node_t* handle_arg_def_block();
-node_t* handle_statement_block();
-node_t* handle_arg_block();
+node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char op);
+node_t* create_primary_node_num(primary_type_e val_type, double val);
+node_t* create_primary_node_str(primary_type_e val_type, char* val);
+node_t* create_primary_node_nde(primary_type_e val_type, node_t* val);
+
+void handle_arg_node(node_t* node);
+void handle_stmnt_node(node_t* node);
+void handle_null_stmnt_node();
+
+void clear_arg_def_block();
+void clear_statement_block();
+void clear_arg_block();
 
 #endif

@@ -2,7 +2,7 @@
 #include "parse.h"
 #include "tree_handler.h"
 
-node_t* create_node(node_t *parent, node_type_e node_type)
+node_t* create_node(node_type_e node_type)
 {
     node_t *node = (node_t*) calloc(1, sizeof(node_t));
     node->node_type = node_type;
@@ -12,27 +12,37 @@ node_t* create_node(node_t *parent, node_type_e node_type)
         case (NODE_FUNC_DEF):
             node->data = calloc(1, sizeof(func_def_data));
             break;
-        case (NODE_ARG_DEF):
-            node->data = calloc(1, sizeof(arg_def_data));
-            break;
-        case (NODE_STMNT):
-            node->data = calloc(1, sizeof(statement_data));
-            break;
-        case (NODE_ASSIGN):
-            node->data = calloc(1, sizeof(assign_data));
-            break;
         case (NODE_FUNC_CALL):
             node->data = calloc(1, sizeof(func_call_data));
             break;
         case (NODE_ARG):
             node->data = calloc(1, sizeof(arg_data));
             break;
+        case (NODE_ARG_DEF):
+            node->data = calloc(1, sizeof(arg_def_data));
+            break;
+        case (NODE_ASSIGN):
+            node->data = calloc(1, sizeof(assign_data));
+            break;
+        case (NODE_DEC):
+            node->data = calloc(1, sizeof(declaration_data));
+            break;
+        case (NODE_DEC_W_ASSIGN):
+            node->data = calloc(1, sizeof(declaration_with_assign_data));
+            break;
+        case (NODE_PRI):
+            node->data = calloc(1, sizeof(primary_data));
+            break;
+        case (NODE_BIN_EXPR):
+            node->data = calloc(1, sizeof(bin_expr_data));
+        case (NODE_NULL_STMNT):
+            // no data
+            break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
             break;
     }
 
-    node->parent = parent;
     return node;
 }
 
@@ -72,244 +82,185 @@ parent_block_data* add_child_to_parent_block(node_t* parent,
     return parent_data;
 }
 
-// TODO: Implement a symbol table to keep track of existing symbols.
-//       For now, just return new symbols every time.
-symbol_t* get_symbol_by_identifier(node_t *scope, char* identifier)
-{
-    // For now, assume var and just create a new symbol
-    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_VAR;
-    symbol->name = identifier;
-    symbol->val.numVal = 0;
-
-    return symbol;
-}
-
-symbol_t* get_var_symbol(node_t* scope, char* name, double value, 
-                         bool create_if_DNE, bool fail_if_exists)
-{
-    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_VAR;
-    symbol->name = name;
-    symbol->val.numVal = value;
-
-    return symbol;
-}
-
-symbol_t* get_bool_symbol(node_t* scope, char* name, bool value, 
-                         bool create_if_DNE, bool fail_if_exists)
-{
-    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_VAR;
-    symbol->name = name;
-    symbol->val.boolVal = value;
-
-    return symbol;
-}
-
-symbol_t* get_string_symbol(node_t* scope, char* name, char* value, 
-                         bool create_if_DNE, bool fail_if_exists)
-{
-    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_VAR;
-    symbol->name = name;
-    symbol->val.strVal = value;
-
-    return symbol;
-}
-
-symbol_t* get_pointer_symbol(node_t* scope, char* name, 
-                             bool create_if_DNE, bool fail_if_exists)
-{
-    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_POINTER;
-    symbol->name = name;
-
-    return symbol;
-}
-
-// Literals cannot be 'reused', so there's no need to do a table lookup or scope check
-symbol_t* get_literal_num_symbol(double value)
-{
-    symbol_t *symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_LITERAL_NUM;
-    symbol->val.numVal = value;
-
-    return symbol;
-}
-
-symbol_t* get_literal_str_symbol(char* strVal)
-{
-    symbol_t* symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_LITERAL_STRING;
-    symbol->val.strVal = strVal;
-
-    return symbol;
-}
-
-symbol_t* get_literal_bool_symbol(bool boolVal)
-{
-    symbol_t* symbol = (symbol_t*) calloc(1, sizeof(symbol_t));
-    symbol->type = TYPE_LITERAL_BOOL;
-    symbol->val.boolVal = boolVal;
-
-    return symbol;
-}
-
-void handle_global_block()
+void create_global_block()
 {
     syntax_tree = (tree_t*) calloc(1, sizeof(tree_t));
     
-    node_t *global_block = create_node(NULL, NODE_GLOBAL_BLOCK);
+    node_t *global_block = create_node(NODE_GLOBAL_BLOCK);
 
     syntax_tree->global_block = global_block;
-
-    current_scope = global_block;
 }
 
-void handle_function_def(char* name, data_types_e return_type)
+void add_func_def_to_global_block(node_t* node)
 {
-    if (current_scope != syntax_tree->global_block)
-    {
-        yyerror("Functions can only be defined in the global scope");
-    }
+    node_t* child[1] = { node };
+    add_child_to_parent_block(syntax_tree->global_block, 1, child);
+}
 
-    node_t* func_def_node = current_func_def;
-    func_def_data* data = (func_def_data*) func_def_node->data;
+node_t* create_func_def_node(char* return_type, char* identifier, node_t* arg_def_block, 
+                             node_t* stmnt_block)
+{
+    node_t* node = create_node(NODE_FUNC_DEF);
+    func_def_data* data = (func_def_data*) node->data;
 
     data->return_type = return_type;
-    data->identifier = get_pointer_symbol(current_scope, name, true, true);
-    data->arg_def_block = current_arg_def_block;
-    data->statement_block = current_statement_block;
+    data->identifier = identifier;
+    data->arg_def_block = arg_def_block;
+    data->statement_block = stmnt_block;
 
-    current_arg_def_block->parent = func_def_node;
-    current_statement_block->parent = func_def_node;
+    arg_def_block->parent = node;
+    stmnt_block->parent = node;
 
-    node_t* new_gb_children[1] = { func_def_node };
-    add_child_to_parent_block(syntax_tree->global_block, 1, new_gb_children);
-
-    current_scope = func_def_node;
+    return node;
 }
 
-void handle_func_call(symbol_t* func)
+node_t* create_func_call_node(char* identifier, node_t* arg_block)
 {
-    if (current_scope == syntax_tree->global_block)
-    {
-        yyerror("Functions cannot be called in the global scope");
-    }
+    node_t* node = create_node(NODE_FUNC_CALL);
+    func_call_data* data = (func_call_data*) node->data;
 
-    node_t *func_call = create_node(current_scope, NODE_FUNC_CALL);
-    func_call_data *data = (func_call_data*) func_call->data;
+    data->identifier = identifier;
+    data->arg_block = arg_block;
 
-    data->identifier = func;
-    data->argument_block = current_arg_block;
-    current_arg_block->parent = func_call;
+    arg_block->parent = node;
 
-    current_func_call = func_call;
+    return node;
 }
 
-void handle_arg_def(data_types_e type, char* symbol_name)
+node_t* create_arg_def_node(char* type, char* identifier)
 {
-    node_t *arg_def_node = create_node(current_arg_def_block, NODE_ARG_DEF);
-    arg_def_data *arg_def_node_data = (arg_def_data*) arg_def_node->data;
+    node_t* node = create_node(NODE_ARG_DEF);
+    arg_def_data* data = (arg_def_data*) node->data;
 
-    switch (type)
-    {
-        case (TYPE_VAR):
-            arg_def_node_data->identifier = get_var_symbol(current_scope, symbol_name, 
-                                                0, true, true);
-            break;
-        case (TYPE_BOOL):
-            arg_def_node_data->identifier = get_bool_symbol(current_scope, symbol_name,
-                                                false, true, true);
-            break;
-        case (TYPE_STRING):
-            arg_def_node_data->identifier = get_string_symbol(current_scope, symbol_name,
-                                                "", true, true);
-            break;
-        case (TYPE_POINTER):
-            arg_def_node_data->identifier = get_pointer_symbol(current_scope, symbol_name, 
-                                            true, true);
-            break;
-        default:
-            yyerror("Unrecognized symbol type");
-            break;
-    }
-    
-    node_t* child[1] = { arg_def_node };
+    data->type = type;
+    data->identifier = identifier;
+
+    node_t* child[1] = { node };
     add_child_to_parent_block(current_arg_def_block, 1, child);
 
-    current_arg_def = arg_def_node;
+    return node;
 }
 
-void handle_assignment_to_identifier(char* iden_name_left, char* iden_name_right)
+node_t* create_assign_node(char* identifier, node_t* expr)
 {
-    node_t *assn_node = create_node(current_statement_block, NODE_ASSIGN);
-    assign_data *assign_node_data = (assign_data*) assn_node->data;
+    node_t* node = create_node(NODE_ASSIGN);
+    assign_data* data = (assign_data*) node->data;
 
-    assign_node_data->left_operand = get_symbol_by_identifier(current_scope, iden_name_left);
-    assign_node_data->right_operand.symbol = get_symbol_by_identifier(current_scope, 
-                                                                iden_name_right);
-    assign_node_data->right_operand_is_expression = false;
+    data->identifier = identifier;
+    data->expr = expr;
 
-    node_t* child[1] = { assn_node };
+    expr->parent = node;
+
+    return node;
+}
+
+node_t* create_declaration_node(char* type, char* identifier)
+{
+    node_t* node = create_node(NODE_DEC);
+    declaration_data* data = (declaration_data*) node->data;
+
+    data->type = type;
+    data->identifier = identifier;
+
+    return node;
+}
+
+node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t* expr)
+{
+    node_t* node = create_node(NODE_DEC_W_ASSIGN);
+    declaration_with_assign_data* data = (declaration_with_assign_data*) node->data;
+
+    data->type = type;
+    data->identifier = identifier;
+    data->expr = expr;
+
+    expr->parent = node;
+
+    return node;
+}
+
+node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char op)
+{
+    node_t* node = create_node(NODE_BIN_EXPR);
+    bin_expr_data* data = (bin_expr_data*) node->data;
+
+    data->left_node = left_node;
+    data->right_node = right_node;
+    data->op = op;
+
+    left_node->parent = node;
+    right_node->parent = node;
+
+    return node;
+}
+
+node_t* create_primary_node_num(primary_type_e val_type, double val)
+{
+    node_t* node = create_node(NODE_PRI);
+    primary_data* data = (primary_data*) node->data;
+
+    data->val_type = val_type;
+    data->val.numValue = val;
+
+    return node;
+}
+
+node_t* create_primary_node_str(primary_type_e val_type, char* val)
+{
+    node_t* node = create_node(NODE_PRI);
+    primary_data* data = (primary_data*) node->data;
+
+    data->val_type = val_type;
+    data->val.strValue = val;
+
+    return node;
+}
+
+node_t* create_primary_node_nde(primary_type_e val_type, node_t* val)
+{
+    node_t* node = create_node(NODE_PRI);
+    primary_data* data = (primary_data*) node->data;
+
+    data->val_type = val_type;
+    data->val.nodeValue = val;
+
+    val->parent = node;
+
+    return node;
+}
+
+void handle_arg_node(node_t* node)
+{
+    node_t* child[1] = { node };
+    add_child_to_parent_block(current_arg_block, 1, child);
+}
+
+void handle_stmnt_node(node_t* node)
+{
+    node_t* child[1] = { node };
     add_child_to_parent_block(current_statement_block, 1, child);
-
-    current_assign = assn_node;
 }
 
-void handle_assignment_to_literal(char* iden_name, data_types_e type, symbol_value val)
+void handle_null_stmnt_node()
 {
-    node_t *assn_node = create_node(current_statement_block, NODE_ASSIGN);
-    assign_data *assign_node_data = (assign_data*) assn_node->data;
-
-    assign_node_data->left_operand = get_symbol_by_identifier(current_scope, iden_name);
-    
-    switch (type)
-    {
-        case (TYPE_LITERAL_NUM):
-            assign_node_data->right_operand.symbol = get_literal_num_symbol(val.numVal);
-            break;
-        case (TYPE_LITERAL_STRING):
-            assign_node_data->right_operand.symbol = get_literal_str_symbol(val.strVal);
-            break;
-        case (TYPE_LITERAL_BOOL):
-            assign_node_data->right_operand.symbol = get_literal_bool_symbol(val.boolVal);
-            break;
-        default:
-            yyerror("Unknown literal type");
-            break;
-    }
-    
-    assign_node_data->right_operand_is_expression = false;
-
-    node_t* child[1] = { assn_node };
-    add_child_to_parent_block(current_statement_block, 1, child); 
-
-    current_assign = assn_node;
+    node_t* child[1] = { create_node(NODE_NULL_STMNT) };
+    add_child_to_parent_block(current_statement_block, 1, child);
 }
 
-node_t* handle_arg_def_block()
+void clear_arg_def_block()
 {
-    node_t *arg_def_block = create_node(NULL, NODE_ARG_DEF_BLOCK);
-
-    current_arg_def_block = arg_def_block;
-    return arg_def_block;
+    node_t* node = create_node(NODE_ARG_DEF_BLOCK);
+    current_arg_def_block = node;
 }
 
-node_t* handle_statement_block()
+void clear_statement_block()
 {
-    node_t *stmnt_block = create_node(current_scope, NODE_STMNT_BLOCK);
-
-    current_statement_block = stmnt_block;
-    return stmnt_block;
+    node_t* node = create_node(NODE_STMNT_BLOCK);
+    current_statement_block = node;
 }
 
-node_t* handle_arg_block()
+void clear_arg_block()
 {
-    node_t *arg_block = create_node(NULL, NODE_ARG_BLOCK);
-
-    current_arg_block = arg_block;
-    return arg_block;
+    node_t* node = create_node(NODE_ARG_BLOCK);
+    current_arg_block = node;
 }
-

@@ -3,43 +3,22 @@
 
 #include <stdbool.h>
 
-typedef enum
-{
-    TYPE_VAR,
-    TYPE_STRING,
-    TYPE_POINTER,
-    TYPE_BOOL,
-    TYPE_LITERAL_NUM,
-    TYPE_LITERAL_STRING,
-    TYPE_LITERAL_BOOL,
-} data_types_e;
-
-typedef union
-{
-    double numVal;
-    char* strVal;
-    bool boolVal;
-} symbol_value;
-
-typedef struct 
-{
-    data_types_e type;
-    symbol_value val;
-    char *name;
-} symbol_t;
-
 typedef enum 
 {
     NODE_GLOBAL_BLOCK,
     NODE_FUNC_DEF,
-    NODE_ARG_DEF_BLOCK,
-    NODE_ARG_DEF,
-    NODE_STMNT_BLOCK,
-    NODE_STMNT,
-    NODE_ASSIGN,
     NODE_FUNC_CALL,
+    NODE_ARG_DEF,
+    NODE_ASSIGN,
+    NODE_DEC,
+    NODE_DEC_W_ASSIGN,
+    NODE_NULL_STMNT,
+    NODE_STMNT_BLOCK,
+    NODE_ARG_DEF_BLOCK,
     NODE_ARG_BLOCK,
-    NODE_ARG
+    NODE_PRI,
+    NODE_BIN_EXPR,
+    NODE_PRIMARY
 } node_type_e;
 
 typedef struct node_t node_t;
@@ -51,6 +30,21 @@ struct node_t
     
     void *data;
 };
+
+typedef enum
+{
+    PRI_LITERAL_NUM,
+    PRI_LITERAL_STR,
+    PRI_IDENTIFIER,
+    PRI_FUNC_CALL
+} primary_type_e;
+
+typedef union
+{
+    double numValue;
+    char* strValue;
+    node_t* nodeValue;
+} primary_value;
 
 typedef struct 
 {
@@ -65,46 +59,54 @@ typedef struct
 
 typedef struct 
 {
-    data_types_e return_type;
-    symbol_t *identifier;
-    node_t *arg_def_block;
-    node_t *statement_block;
+    char* return_type;
+    char* identifier;
+    node_t* arg_def_block;
+    node_t* statement_block;
 } func_def_data;
 
 typedef struct 
 {
-    symbol_t *identifier;
-} arg_def_data;
-
-typedef struct 
-{
-    node_type_e statement_type;
-    node_t *statement;
-} statement_data;
-
-typedef union
-{
-    symbol_t *symbol;
-    node_t* expr;
-} assign_right_operand;
-
-typedef struct 
-{
-    symbol_t *left_operand;
-    assign_right_operand right_operand;
-
-        bool right_operand_is_expression;
-} assign_data;
-
-typedef struct 
-{
-    symbol_t *identifier;
-    node_t *argument_block;
+    char* identifier;
+    node_t* arg_block;
 } func_call_data;
 
 typedef struct 
 {
-    symbol_t *identifier;
-} arg_data;
+    char* type;
+    char* identifier;
+} arg_def_data;
+
+typedef struct 
+{
+    char* identifier;
+    node_t* expr;
+} assign_data;
+
+typedef struct 
+{
+    char* type;
+    char* identifier;
+} declaration_data;
+
+typedef struct 
+{
+    char* type;
+    char* identifier;
+    node_t* expr;
+} declaration_with_assign_data;
+
+typedef struct
+{
+    node_t* left_node;
+    node_t* right_node;
+    char op;
+} bin_expr_data;
+
+typedef struct
+{
+    primary_type_e val_type;
+    primary_value val;
+} primary_data;
 
 #endif

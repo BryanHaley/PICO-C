@@ -63,9 +63,19 @@ int main(int argc, char** args)
         generate_code(syntax_tree);
     }
 
+    else if (err_in_lex)
+    {
+        fprintf(stderr, "Error in lexical analysis. Aborting code generation.\n");
+    }
+
+    else if (err_in_parse)
+    {
+        fprintf(stderr, "Error in semantic analysis. Aborting code generation.\n");
+    }
+
     else
     {
-        fprintf(stderr, "Error in front-end. Aborting code generation.\n");
+        fprintf(stderr, "Unknown error. Aborting code generation.\n");
     }
 
     return 0; 
