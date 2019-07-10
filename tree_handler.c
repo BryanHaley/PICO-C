@@ -15,9 +15,9 @@ node_t* create_node(node_type_e node_type)
         case (NODE_FUNC_CALL):
             node->data = calloc(1, sizeof(func_call_data));
             break;
-        case (NODE_ARG):
+        /*case (NODE_ARG):
             node->data = calloc(1, sizeof(arg_data));
-            break;
+            break;*/
         case (NODE_ARG_DEF):
             node->data = calloc(1, sizeof(arg_def_data));
             break;

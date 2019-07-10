@@ -101,6 +101,7 @@ typedef struct
     node_t* left_node;
     node_t* right_node;
     char op;
+    bool in_parentheses;
 } bin_expr_data;
 
 typedef struct

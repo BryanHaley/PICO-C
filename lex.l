@@ -45,6 +45,10 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 "="                     { return('='); }
 ";"                     { return(';'); }
 ","                     { return(','); }
+"+"                     { return('+'); }
+"-"                     { return('-'); }
+"*"                     { return('*'); }
+"/"                     { return('/'); }
 
 .                       { 
                             printf("Unrecognized token: %s\n", yytext); 

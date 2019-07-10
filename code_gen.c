@@ -31,6 +31,12 @@ void generate_node(node_t* node)
         case (NODE_ARG_BLOCK):
             generate_parent_block(node, true);
             break;
+        case (NODE_BIN_EXPR):
+            generate_bin_expr(node);
+            break;
+        case (NODE_PRI):
+            generate_primary(node);
+            break;
         case (NODE_NULL_STMNT):
             //fprintf(output_file, ";");
             break;
@@ -70,7 +76,7 @@ void generate_func_def(node_t* node)
     
     if (data->statement_block != NULL)
     { 
-        generate_parent_block(data->statement_block); 
+        generate_parent_block(data->statement_block, false); 
     }
 
     fprintf(output_file, "\nend");
@@ -89,8 +95,42 @@ void generate_func_call(node_t* node)
 
     fprintf(output_file, "%s(", data->identifier);
 
-    // TODO: implement expression code generation
-    //generate_node(data->arg_block);
+    if (data->arg_block != NULL)
+    {
+        generate_node(data->arg_block);
+    }
 
     fprintf(output_file, ")\n");
+}
+
+void generate_bin_expr(node_t* node)
+{
+    bin_expr_data* data = (bin_expr_data*) node->data;
+
+    if (data->in_parentheses) { fprintf(output_file, "("); }
+
+    generate_node(data->left_node);
+    fprintf(output_file, " %c ", data->op);
+    generate_node(data->right_node);
+    
+    if (data->in_parentheses) { fprintf(output_file, ")"); }
+}
+
+void generate_primary(node_t* node)
+{
+    primary_data* data = (primary_data*) node->data;
+
+    switch (data->val_type)
+    {
+        case (PRI_LITERAL_NUM):
+            fprintf(output_file, "%f", data->val.numValue);
+            break;
+        case (PRI_LITERAL_STR):
+        case (PRI_IDENTIFIER):
+            fprintf(output_file, "%s", data->val.strValue);
+            break;
+        case (PRI_FUNC_CALL):
+            generate_node(data->val.nodeValue);
+            break;
+    }
 }

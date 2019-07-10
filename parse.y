@@ -21,8 +21,10 @@
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
 %type<nodeValue> function_def function_call argument_defintion assignment expression
-%type<nodeValue> term_expression fact_expression primary declaration
-%type<nodeValue> declaration_with_assign
+%type<nodeValue> primary declaration declaration_with_assign
+
+%left '+' '-'
+%left '*' '/'
 
 %%
 program
@@ -80,7 +82,7 @@ function_call
     ;
 
 argument_block
-    :   /* empty */
+    : /* empty */
     | argument_block ',' argument
     | argument
     ;
@@ -101,28 +103,22 @@ declaration_with_assign
     ;
 
 expression
-    : '(' expression ')'
-    { $$ = $2; }
-    | fact_expression
-    { $$ = $1; }
-    | term_expression
-    { $$ = $1; }
-    | primary
-    { $$ = $1; }
-    ;
-
-fact_expression
-    : expression '*' expression
-    { $$ = create_bin_expr_node($1, $3, '*'); }
-    | expression '/' expression
-    { $$ = create_bin_expr_node($1, $3, '/'); }
-    ;
-
-term_expression
     : expression '+' expression
     { $$ = create_bin_expr_node($1, $3, '+'); }
     | expression '-' expression
     { $$ = create_bin_expr_node($1, $3, '-'); }
+    | expression '*' expression
+    { $$ = create_bin_expr_node($1, $3, '*'); }
+    | expression '/' expression
+    { $$ = create_bin_expr_node($1, $3, '/'); }
+    | '(' expression ')'
+    { 
+        bin_expr_data* data = (bin_expr_data*) $2->data;
+        data->in_parentheses = true;
+        $$ = $2; 
+    }
+    | primary
+    { $$ = $1; }
     ;
 
 primary
