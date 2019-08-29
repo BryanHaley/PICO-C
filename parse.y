@@ -64,13 +64,13 @@ statement_block
     ;
 
 statement
-    : assignment ';'
+    : function_call ';'
     { $$ = $1; }
-    | function_call ';'
+    | declaration_with_assign ';'
     { $$ = $1; }
     | declaration ';'
     { $$ = $1; }
-    | declaration_with_assign ';'
+    | assignment ';'
     { $$ = $1; }
     | ';'
     { $$ = NULL; }

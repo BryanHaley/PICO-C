@@ -42,6 +42,14 @@ void generate_node(node_t* node)
         case (NODE_NULL_STMNT):
             //fprintf(output_file, ";");
             break;
+        case (NODE_ASSIGN):
+            generate_assignment(node);
+            break;
+        case (NODE_DEC):
+            generate_declaration(node);
+            break;
+        case (NODE_DEC_W_ASSIGN):
+            generate_declaration_with_assign(node);
         default:
             generate_parent_block(node, false);
             break;
@@ -147,4 +155,37 @@ void generate_primary(node_t* node)
             generate_node(data->val.nodeValue);
             break;
     }
+}
+
+void generate_assignment(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    assign_data* data = (assign_data*) node->data;
+
+    fprintf(output_file, "%s = \n", data->identifier);
+
+    generate_node(data->expr);
+}
+
+void generate_declaration(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    declaration_data* data = (declaration_data*) node->data;
+
+    fprintf(output_file, "local %s\n", data->identifier);
+}
+
+void generate_declaration_with_assign(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    declaration_with_assign_data* data = (declaration_with_assign_data*) node->data;
+
+    fprintf(output_file, "local %s = ", data->identifier);
+
+    generate_node(data->expr);
+
+    fprintf(output_file, "\n");
 }

@@ -17,5 +17,8 @@ void generate_arg_block(node_t* node);
 void generate_arg(node_t* node);
 void generate_bin_expr(node_t* node);
 void generate_primary(node_t* node);
+void generate_assignment(node_t* node);
+void generate_declaration(node_t* node);
+void generate_declaration_with_assign(node_t* node);
 
 #endif
