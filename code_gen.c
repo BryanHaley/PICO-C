@@ -24,6 +24,9 @@ void generate_node(node_t* node)
         case (NODE_FUNC_CALL):
             generate_func_call(node);
             break;
+        case (NODE_INLINE_FUNC_CALL):
+            generate_inline_func_call(node);
+            break;
         case (NODE_ARG_DEF_BLOCK):
             generate_parent_block(node, true);
             break;
@@ -50,6 +53,7 @@ void generate_node(node_t* node)
             break;
         case (NODE_DEC_W_ASSIGN):
             generate_declaration_with_assign(node);
+            break;
         default:
             generate_parent_block(node, false);
             break;
@@ -119,6 +123,22 @@ void generate_func_call(node_t* node)
     }
 
     fprintf(output_file, ")\n");
+}
+
+void generate_inline_func_call(node_t* node)
+{
+    if (node == NULL) { return; }
+    
+    func_call_data* data = (func_call_data*) node->data;
+
+    fprintf(output_file, "%s(", data->identifier);
+
+    if (data->arg_block != NULL)
+    {
+        generate_node(data->arg_block);
+    }
+
+    fprintf(output_file, ")");
 }
 
 void generate_bin_expr(node_t* node)

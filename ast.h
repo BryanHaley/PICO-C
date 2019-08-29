@@ -8,6 +8,7 @@ typedef enum
     NODE_GLOBAL_BLOCK,
     NODE_FUNC_DEF,
     NODE_FUNC_CALL,
+    NODE_INLINE_FUNC_CALL,
     NODE_ARG_DEF,
     NODE_ASSIGN,
     NODE_DEC,

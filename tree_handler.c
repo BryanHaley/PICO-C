@@ -113,8 +113,8 @@ node_t* create_func_def_node(char* return_type, char* identifier, node_t* arg_de
     data->arg_def_block = arg_def_block;
     data->statement_block = stmnt_block;
 
-    arg_def_block->parent = node;
-    stmnt_block->parent = node;
+    if (arg_def_block != NULL) { arg_def_block->parent = node; }
+    if (stmnt_block != NULL) { stmnt_block->parent = node; }
 
     return node;
 }
@@ -127,8 +127,16 @@ node_t* create_func_call_node(char* identifier, node_t* arg_block)
     data->identifier = identifier;
     data->arg_block = arg_block;
 
-    arg_block->parent = node;
+    if (arg_block->parent != NULL) { arg_block->parent = node; }
 
+    return node;
+}
+
+node_t* create_inline_func_call_node(char* identifier, node_t* arg_block)
+{
+    // functionally the same as non-inline func call node, just with different marker
+    node_t* node = create_func_call_node(identifier, arg_block);
+    node->node_type = NODE_INLINE_FUNC_CALL;
     return node;
 }
 
@@ -151,7 +159,7 @@ node_t* create_assign_node(char* identifier, node_t* expr)
     data->identifier = identifier;
     data->expr = expr;
 
-    expr->parent = node;
+    if (expr != NULL) { expr->parent = node; }
 
     return node;
 }
@@ -176,7 +184,7 @@ node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t
     data->identifier = identifier;
     data->expr = expr;
 
-    expr->parent = node;
+    if (expr != NULL) { expr->parent = node; }
 
     return node;
 }
@@ -190,8 +198,8 @@ node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char op)
     data->right_node = right_node;
     data->op = op;
 
-    left_node->parent = node;
-    right_node->parent = node;
+    if (left_node != NULL) { left_node->parent = node; }
+    if (right_node != NULL) { right_node->parent = node; }
 
     return node;
 }
@@ -226,7 +234,7 @@ node_t* create_primary_node_nde(primary_type_e val_type, node_t* val)
     data->val_type = val_type;
     data->val.nodeValue = val;
 
-    val->parent = node;
+    if (val != NULL) { val->parent = node; }
 
     return node;
 }

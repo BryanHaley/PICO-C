@@ -11,6 +11,7 @@ void generate_node(node_t* node);
 void generate_parent_block(node_t* parent, bool comma_delim);
 void generate_func_def(node_t* node);
 void generate_func_call(node_t* node);
+void generate_inline_func_call(node_t* node);
 void generate_arg_def_block(node_t* node);
 void generate_arg_def(node_t* node);
 void generate_arg_block(node_t* node);

@@ -20,8 +20,8 @@
 %type<stringValue> IDENTIFIER LITERAL_STRING type
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
-%type<nodeValue> function_def function_call argument_defintion assignment expression
-%type<nodeValue> primary declaration declaration_with_assign statement argument
+%type<nodeValue> function_def function_call inline_function_call argument_defintion assignment
+%type<nodeValue> expression primary declaration declaration_with_assign statement argument
 %type<nodeValue> argument_definition_block statement_block argument_block
 
 %left '+' '-'
@@ -86,6 +86,11 @@ function_call
     { $$ = create_func_call_node($1, $3); }
     ;
 
+inline_function_call
+    : IDENTIFIER '(' argument_block ')' 
+    { $$ = create_inline_func_call_node($1, $3); }
+    ;
+
 argument_block
     : argument_block argument
     { $$ = handle_parent_block($1, NODE_ARG_BLOCK, $2); }
@@ -136,7 +141,7 @@ primary
     { $$ = create_primary_node_str(PRI_LITERAL_STR, $1); }
     | IDENTIFIER
     { $$ = create_primary_node_str(PRI_IDENTIFIER, $1); }
-    | function_call
+    | inline_function_call
     { $$ = create_primary_node_nde(PRI_FUNC_CALL, $1); }
     ;
 

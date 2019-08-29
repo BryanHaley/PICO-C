@@ -15,6 +15,7 @@ void add_func_def_to_global_block(node_t* node);
 
 node_t* create_func_def_node(char* return_type, char* identifier, node_t* arg_def_block, node_t* stmnt_block);
 node_t* create_func_call_node(char* identifier, node_t* arg_block);
+node_t* create_inline_func_call_node(char* identifier, node_t* arg_block);
 node_t* create_arg_def_node(char* type, char* identifier);
 node_t* create_assign_node(char* identifier, node_t* expr);
 node_t* create_declaration_node(char* type, char* identifier);
