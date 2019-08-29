@@ -14,6 +14,8 @@ void generate_code(tree_t* syntax_tree)
 
 void generate_node(node_t* node)
 {
+    if (node == NULL) { return; }
+
     switch(node->node_type)
     {
         case (NODE_FUNC_DEF):
@@ -48,6 +50,8 @@ void generate_node(node_t* node)
 
 void generate_parent_block(node_t* parent, bool comma_delim)
 {
+    if (parent == NULL) { return; }
+
     parent_block_data* parent_data = (parent_block_data*) parent->data;
 
     for (int i = 0; i < parent_data->num_children; i++)
@@ -63,6 +67,8 @@ void generate_parent_block(node_t* parent, bool comma_delim)
 
 void generate_func_def(node_t* node)
 {
+    if (node == NULL) { return; }
+
     func_def_data* data = (func_def_data*) node->data;
 
     fprintf(output_file, "\nfunction %s ( ", data->identifier);
@@ -84,6 +90,8 @@ void generate_func_def(node_t* node)
 
 void generate_arg_def(node_t* node)
 {
+    if (node == NULL) { return; }
+    
     arg_def_data* data = (arg_def_data*) node->data;
 
     fprintf(output_file, "%s", data->identifier);
@@ -91,6 +99,8 @@ void generate_arg_def(node_t* node)
 
 void generate_func_call(node_t* node)
 {
+    if (node == NULL) { return; }
+    
     func_call_data* data = (func_call_data*) node->data;
 
     fprintf(output_file, "%s(", data->identifier);
@@ -105,6 +115,8 @@ void generate_func_call(node_t* node)
 
 void generate_bin_expr(node_t* node)
 {
+    if (node == NULL) { return; }
+    
     bin_expr_data* data = (bin_expr_data*) node->data;
 
     if (data->in_parentheses) { fprintf(output_file, "("); }
@@ -118,6 +130,8 @@ void generate_bin_expr(node_t* node)
 
 void generate_primary(node_t* node)
 {
+    if (node == NULL) { return; }
+    
     primary_data* data = (primary_data*) node->data;
 
     switch (data->val_type)

@@ -21,7 +21,8 @@
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
 %type<nodeValue> function_def function_call argument_defintion assignment expression
-%type<nodeValue> primary declaration declaration_with_assign
+%type<nodeValue> primary declaration declaration_with_assign statement argument
+%type<nodeValue> argument_definition_block statement_block argument_block
 
 %left '+' '-'
 %left '*' '/'
@@ -37,38 +38,42 @@ global_block
     ;
 
 function_def
-    : { clear_arg_def_block(); clear_statement_block(); }
-    type IDENTIFIER '(' argument_defintion_block ')' '{' statement_block '}' 
-    { $$ = create_func_def_node($2, $3, current_arg_def_block, current_statement_block); }
+    : type IDENTIFIER '(' argument_definition_block ')' '{' statement_block '}' 
+    { $$ = create_func_def_node($1, $2, $4, $7); }
     ;
 
-argument_defintion_block
-    : /* empty */
-    | argument_defintion_block ',' argument_defintion
-    | argument_defintion
+argument_definition_block
+    : argument_definition_block argument_defintion
+    { $$ = handle_parent_block($1, NODE_ARG_DEF_BLOCK, $2); }
+    | /* empty */
+    { $$ = NULL; }
     ;
 
 argument_defintion
-    : type IDENTIFIER 
+    : type IDENTIFIER ',' 
+    { $$ = create_arg_def_node($1, $2); }
+    | type IDENTIFIER
     { $$ = create_arg_def_node($1, $2); }
     ;
 
 statement_block
-    : /* empty */
-    | statement_block statement
+    : statement_block statement
+    { $$ = handle_parent_block($1, NODE_STMNT_BLOCK, $2); }
+    | /* empty */
+    { $$ = NULL; }
     ;
 
 statement
-    : ';'
-    { handle_null_stmnt_node(); }
-    | assignment ';'
-    { handle_stmnt_node($1); }
+    : assignment ';'
+    { $$ = $1; }
     | function_call ';'
-    { handle_stmnt_node($1); }
+    { $$ = $1; }
     | declaration ';'
-    { handle_stmnt_node($1); }
+    { $$ = $1; }
     | declaration_with_assign ';'
-    { handle_stmnt_node($1); }
+    { $$ = $1; }
+    | ';'
+    { $$ = NULL; }
     ;
 
 assignment
@@ -77,19 +82,22 @@ assignment
     ;
 
 function_call
-    : IDENTIFIER '(' { clear_arg_block(); } argument_block ')' 
-    { $$ = create_func_call_node($1, current_arg_block); }
+    : IDENTIFIER '(' argument_block ')' 
+    { $$ = create_func_call_node($1, $3); }
     ;
 
 argument_block
-    : /* empty */
-    | argument_block ',' argument
-    | argument
+    : argument_block argument
+    { $$ = handle_parent_block($1, NODE_ARG_BLOCK, $2); }
+    | /* empty */
+    { $$ = NULL; }
     ;
 
 argument
-    : expression
-    { handle_arg_node($1); }
+    : expression ','
+    { $$ = $1; }
+    | expression
+    { $$ = $1; }
     ;
 
 declaration

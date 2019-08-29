@@ -49,6 +49,11 @@ node_t* create_node(node_type_e node_type)
 parent_block_data* add_child_to_parent_block(node_t* parent, 
                                             int num_new_children, node_t** children)
 {
+    if (parent == NULL || children == NULL || children[0] == NULL)
+    {
+        return NULL;
+    }
+
     parent_block_data *parent_data = (parent_block_data*) parent->data;
 
     if (parent_data->num_children == 0)
@@ -134,9 +139,6 @@ node_t* create_arg_def_node(char* type, char* identifier)
 
     data->type = type;
     data->identifier = identifier;
-
-    node_t* child[1] = { node };
-    add_child_to_parent_block(current_arg_def_block, 1, child);
 
     return node;
 }
@@ -229,38 +231,18 @@ node_t* create_primary_node_nde(primary_type_e val_type, node_t* val)
     return node;
 }
 
-void handle_arg_node(node_t* node)
+node_t* handle_parent_block(node_t* parent, node_type_e parent_type, node_t* child)
 {
-    node_t* child[1] = { node };
-    add_child_to_parent_block(current_arg_block, 1, child);
-}
+    if (parent == NULL)
+    {
+        parent = create_node(parent_type);
+    }
 
-void handle_stmnt_node(node_t* node)
-{
-    node_t* child[1] = { node };
-    add_child_to_parent_block(current_statement_block, 1, child);
-}
+    if (child != NULL)
+    {
+        node_t* child_arr[1] = { child };
+        add_child_to_parent_block(parent, 1, child_arr);
+    }
 
-void handle_null_stmnt_node()
-{
-    node_t* child[1] = { create_node(NODE_NULL_STMNT) };
-    add_child_to_parent_block(current_statement_block, 1, child);
-}
-
-void clear_arg_def_block()
-{
-    node_t* node = create_node(NODE_ARG_DEF_BLOCK);
-    current_arg_def_block = node;
-}
-
-void clear_statement_block()
-{
-    node_t* node = create_node(NODE_STMNT_BLOCK);
-    current_statement_block = node;
-}
-
-void clear_arg_block()
-{
-    node_t* node = create_node(NODE_ARG_BLOCK);
-    current_arg_block = node;
+    return parent;
 }

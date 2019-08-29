@@ -5,9 +5,6 @@
 #include "ast.h"
 
 tree_t *syntax_tree;
-node_t* current_arg_def_block;
-node_t* current_statement_block;
-node_t* current_arg_block;
 
 node_t* create_node(node_type_e node_type);
 parent_block_data* add_child_to_parent_block(node_t* parent, 
@@ -28,12 +25,6 @@ node_t* create_primary_node_num(primary_type_e val_type, double val);
 node_t* create_primary_node_str(primary_type_e val_type, char* val);
 node_t* create_primary_node_nde(primary_type_e val_type, node_t* val);
 
-void handle_arg_node(node_t* node);
-void handle_stmnt_node(node_t* node);
-void handle_null_stmnt_node();
-
-void clear_arg_def_block();
-void clear_statement_block();
-void clear_arg_block();
+node_t* handle_parent_block(node_t* parent, node_type_e parent_type, node_t* child);
 
 #endif
