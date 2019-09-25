@@ -8,7 +8,6 @@ typedef enum
     NODE_GLOBAL_BLOCK,
     NODE_FUNC_DEF,
     NODE_FUNC_CALL,
-    NODE_INLINE_FUNC_CALL,
     NODE_ARG_DEF,
     NODE_ASSIGN,
     NODE_DEC,
@@ -82,6 +81,7 @@ typedef struct
 {
     char* identifier;
     node_t* expr;
+    char* op;
 } assign_data;
 
 typedef struct 
@@ -101,7 +101,7 @@ typedef struct
 {
     node_t* left_node;
     node_t* right_node;
-    char op;
+    char* op;
     bool in_parentheses;
 } bin_expr_data;
 

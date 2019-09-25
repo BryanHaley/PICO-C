@@ -1,4 +1,7 @@
 %token VAR STRING BOOL IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
+%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
+%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
+%token RIGHT_SHIFT LEFT_SHIFT
 
 %{
 #include <stdio.h>
@@ -20,12 +23,17 @@
 %type<stringValue> IDENTIFIER LITERAL_STRING type
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
-%type<nodeValue> function_def function_call inline_function_call argument_defintion assignment
+%type<nodeValue> function_def function_call argument_defintion assignment
 %type<nodeValue> expression primary declaration declaration_with_assign statement argument
 %type<nodeValue> argument_definition_block statement_block argument_block
 
-%left '+' '-'
-%left '*' '/'
+%right '=' PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
+%right RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
+
+%left '+' '-' 
+%left '*' '/' '%'
+%left '&' '|' '^'
+%left RIGHT_SHIFT LEFT_SHIFT
 
 %%
 program
@@ -78,17 +86,32 @@ statement
 
 assignment
     : IDENTIFIER '=' expression
-    { $$ = create_assign_node($1, $3); }
+    { $$ = create_assign_node($1, $3, "="); }
+    | IDENTIFIER PLUS_EQUAL expression
+    { $$ = create_assign_node($1, $3, "+="); }
+    | IDENTIFIER MINUS_EQUAL expression
+    { $$ = create_assign_node($1, $3, "-="); }
+    | IDENTIFIER TIMES_EQUAL expression
+    { $$ = create_assign_node($1, $3, "*="); }
+    | IDENTIFIER DIVIDE_EQUAL expression
+    { $$ = create_assign_node($1, $3, "/="); }
+    | IDENTIFIER MODULO_EQUAL expression
+    { $$ = create_assign_node($1, $3, "%="); }
+    | IDENTIFIER RIGHT_SHIFT_EQUAL expression
+    { $$ = create_assign_node($1, $3, ">>="); }
+    | IDENTIFIER LEFT_SHIFT_EQUAL expression
+    { $$ = create_assign_node($1, $3, "<<="); }
+    | IDENTIFIER AND_EQUAL expression
+    { $$ = create_assign_node($1, $3, "&="); }
+    | IDENTIFIER OR_EQUAL expression
+    { $$ = create_assign_node($1, $3, "|="); }
+    | IDENTIFIER XOR_EQUAL expression
+    { $$ = create_assign_node($1, $3, "^="); }
     ;
 
 function_call
     : IDENTIFIER '(' argument_block ')' 
     { $$ = create_func_call_node($1, $3); }
-    ;
-
-inline_function_call
-    : IDENTIFIER '(' argument_block ')' 
-    { $$ = create_inline_func_call_node($1, $3); }
     ;
 
 argument_block
@@ -117,13 +140,25 @@ declaration_with_assign
 
 expression
     : expression '+' expression
-    { $$ = create_bin_expr_node($1, $3, '+'); }
+    { $$ = create_bin_expr_node($1, $3, "+"); }
     | expression '-' expression
-    { $$ = create_bin_expr_node($1, $3, '-'); }
+    { $$ = create_bin_expr_node($1, $3, "-"); }
     | expression '*' expression
-    { $$ = create_bin_expr_node($1, $3, '*'); }
+    { $$ = create_bin_expr_node($1, $3, "*"); }
     | expression '/' expression
-    { $$ = create_bin_expr_node($1, $3, '/'); }
+    { $$ = create_bin_expr_node($1, $3, "/"); }
+    | expression '%' expression
+    { $$ = create_bin_expr_node($1, $3, "%"); }
+    | expression RIGHT_SHIFT expression
+    { $$ = create_bin_expr_node($1, $3, ">>"); }
+    | expression LEFT_SHIFT expression
+    { $$ = create_bin_expr_node($1, $3, "<<"); }
+    | expression '&' expression
+    { $$ = create_bin_expr_node($1, $3, "&"); }
+    | expression '|' expression
+    { $$ = create_bin_expr_node($1, $3, "|"); }
+    | expression '^' expression
+    { $$ = create_bin_expr_node($1, $3, "^"); }
     | '(' expression ')'
     { 
         bin_expr_data* data = (bin_expr_data*) $2->data;
@@ -141,7 +176,7 @@ primary
     { $$ = create_primary_node_str(PRI_LITERAL_STR, $1); }
     | IDENTIFIER
     { $$ = create_primary_node_str(PRI_IDENTIFIER, $1); }
-    | inline_function_call
+    | function_call
     { $$ = create_primary_node_nde(PRI_FUNC_CALL, $1); }
     ;
 

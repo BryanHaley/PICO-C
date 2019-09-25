@@ -38,17 +38,33 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 
 {L}({L}|{D})*           { yylval.stringValue = strdup(yytext); return IDENTIFIER; }
 
-"("                     { return('('); }
-")"                     { return(')'); }
-"{"                     { return('{'); }
-"}"                     { return('}'); }
-"="                     { return('='); }
-";"                     { return(';'); }
-","                     { return(','); }
-"+"                     { return('+'); }
-"-"                     { return('-'); }
-"*"                     { return('*'); }
-"/"                     { return('/'); }
+"("                     { return('(');  }
+")"                     { return(')');  }
+"{"                     { return('{');  }
+"}"                     { return('}');  }
+"="                     { return('=');  }
+"+="                    { return PLUS_EQUAL; }
+"-="                    { return MINUS_EQUAL; }
+"*="                    { return TIMES_EQUAL; }
+"/="                    { return DIVIDE_EQUAL; }
+"%="                    { return MODULO_EQUAL; }
+">>="                   { return RIGHT_SHIFT_EQUAL; }
+"<<="                   { return LEFT_SHIFT_EQUAL; }
+"&="                    { return AND_EQUAL; }
+"|="                    { return OR_EQUAL; }
+"^="                    { return XOR_EQUAL; }
+";"                     { return(';');  }
+","                     { return(',');  }
+"+"                     { return('+');  }
+"-"                     { return('-');  }
+"*"                     { return('*');  }
+"/"                     { return('/');  }
+"%"                     { return('%');  }
+">>"                    { return RIGHT_SHIFT; }
+"<<"                    { return LEFT_SHIFT; }
+"&"                     { return('&');  }
+"|"                     { return('|');  }
+"^"                     { return('^');  }
 
 .                       { 
                             printf("Unrecognized token: %s\n", yytext); 

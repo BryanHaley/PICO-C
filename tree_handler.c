@@ -132,14 +132,6 @@ node_t* create_func_call_node(char* identifier, node_t* arg_block)
     return node;
 }
 
-node_t* create_inline_func_call_node(char* identifier, node_t* arg_block)
-{
-    // functionally the same as non-inline func call node, just with different marker
-    node_t* node = create_func_call_node(identifier, arg_block);
-    node->node_type = NODE_INLINE_FUNC_CALL;
-    return node;
-}
-
 node_t* create_arg_def_node(char* type, char* identifier)
 {
     node_t* node = create_node(NODE_ARG_DEF);
@@ -151,13 +143,14 @@ node_t* create_arg_def_node(char* type, char* identifier)
     return node;
 }
 
-node_t* create_assign_node(char* identifier, node_t* expr)
+node_t* create_assign_node(char* identifier, node_t* expr, char* op)
 {
     node_t* node = create_node(NODE_ASSIGN);
     assign_data* data = (assign_data*) node->data;
 
     data->identifier = identifier;
     data->expr = expr;
+    data->op = op;
 
     if (expr != NULL) { expr->parent = node; }
 
@@ -189,7 +182,7 @@ node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t
     return node;
 }
 
-node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char op)
+node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char* op)
 {
     node_t* node = create_node(NODE_BIN_EXPR);
     bin_expr_data* data = (bin_expr_data*) node->data;
