@@ -25,8 +25,23 @@ IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 "//"[^\n]*              { /* consume //-comment */ }
 
 var                     { return VAR; }
+Var                     { return VAR; }
+VAR                     { return VAR; }
 string                  { return STRING; }
+String                  { return STRING; }
+STRING                  { return STRING; }
 bool                    { return BOOL; }
+Bool                    { return BOOL; }
+BOOL                    { return BOOL; }
+boolean                 { return BOOL; }
+Boolean                 { return BOOL; }
+BOOLEAN                 { return BOOL; }
+array                   { return ARRAY; }
+Array                   { return ARRAY; }
+ARRAY                   { return ARRAY; }
+arr                     { return ARRAY; }
+Arr                     { return ARRAY; }
+ARR                     { return ARRAY; }
 
 true                    { yylval.boolValue = true; return LITERAL_BOOL; }
 false                   { yylval.boolValue = false; return LITERAL_BOOL; }
@@ -38,11 +53,10 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 
 {L}({L}|{D})*           { yylval.stringValue = strdup(yytext); return IDENTIFIER; }
 
-"("                     { return('(');  }
-")"                     { return(')');  }
-"{"                     { return('{');  }
-"}"                     { return('}');  }
-"="                     { return('=');  }
+">>"                    { return RIGHT_SHIFT; }
+"<<"                    { return LEFT_SHIFT; }
+"=="                    { return EQUAL_EQUAL; }
+"!="                    { return NOT_EQUAL; }
 "+="                    { return PLUS_EQUAL; }
 "-="                    { return MINUS_EQUAL; }
 "*="                    { return TIMES_EQUAL; }
@@ -53,6 +67,17 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 "&="                    { return AND_EQUAL; }
 "|="                    { return OR_EQUAL; }
 "^="                    { return XOR_EQUAL; }
+"++"                    { return PLUS_PLUS; }
+"--"                    { return MINUS_MINUS; }
+"&&"                    { return LOGICAL_AND; }
+"||"                    { return LOGICAL_OR; }
+"<="                    { return LESS_THAN_OR_EQUAL; }
+">="                    { return GREATER_THAN_OR_EQUAL; }
+"("                     { return('(');  }
+")"                     { return(')');  }
+"{"                     { return('{');  }
+"}"                     { return('}');  }
+"="                     { return('=');  }
 ";"                     { return(';');  }
 ","                     { return(',');  }
 "+"                     { return('+');  }
@@ -60,11 +85,13 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 "*"                     { return('*');  }
 "/"                     { return('/');  }
 "%"                     { return('%');  }
-">>"                    { return RIGHT_SHIFT; }
-"<<"                    { return LEFT_SHIFT; }
 "&"                     { return('&');  }
 "|"                     { return('|');  }
 "^"                     { return('^');  }
+"<"                     { return('<');  }
+">"                     { return('>');  }
+"["                     { return('[');  }
+"]"                     { return(']');  }
 
 .                       { 
                             printf("Unrecognized token: %s\n", yytext); 

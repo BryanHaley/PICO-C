@@ -38,6 +38,15 @@ node_t* create_node(node_type_e node_type)
         case (NODE_NULL_STMNT):
             // no data
             break;
+        case (NODE_POSTFIX):
+            node->data = calloc(1, sizeof(postfix_data));
+            break;
+        case (NODE_ARR_ACCESS):
+            node->data = calloc(1, sizeof(array_accessor_data));
+            break;
+        case (NODE_ARR_DEC):
+            node->data = calloc(1, sizeof(array_dec_data));
+            break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
             break;
@@ -46,8 +55,14 @@ node_t* create_node(node_type_e node_type)
     return node;
 }
 
-parent_block_data* add_child_to_parent_block(node_t* parent, 
-                                            int num_new_children, node_t** children)
+parent_block_data* add_child_to_parent_block(node_t* parent, node_t* child)
+{
+    node_t* child_arr[1] = { child };
+    return add_children_to_parent_block(parent, 1, child_arr);
+}
+
+parent_block_data* add_children_to_parent_block(node_t* parent, 
+                                                int num_new_children, node_t** children)
 {
     if (parent == NULL || children == NULL || children[0] == NULL)
     {
@@ -98,8 +113,7 @@ void create_global_block()
 
 void add_func_def_to_global_block(node_t* node)
 {
-    node_t* child[1] = { node };
-    add_child_to_parent_block(syntax_tree->global_block, 1, child);
+    add_child_to_parent_block(syntax_tree->global_block, node);
 }
 
 node_t* create_func_def_node(char* return_type, char* identifier, node_t* arg_def_block, 
@@ -182,6 +196,33 @@ node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t
     return node;
 }
 
+node_t* create_array_accessor_node(char* identifier, node_t* expr)
+{
+    node_t* node = create_node(NODE_ARR_ACCESS);
+    array_accessor_data* data = (array_accessor_data*) node->data;
+
+    data->identifier = identifier;
+    data->expr = expr;
+
+    if (expr != NULL) { expr->parent = node; }
+
+    return node;
+}
+
+node_t* create_array_dec_node(char* identifier, int size, node_t* literal_block)
+{
+    node_t* node = create_node(NODE_ARR_DEC);
+    array_dec_data* data = (array_dec_data*) node->data;
+
+    data->identifier = identifier;
+    data->size = size;
+    data->literal_block = literal_block;
+
+    if (literal_block != NULL) { literal_block->parent = node; }
+
+    return node;
+}
+
 node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char* op)
 {
     node_t* node = create_node(NODE_BIN_EXPR);
@@ -232,6 +273,17 @@ node_t* create_primary_node_nde(primary_type_e val_type, node_t* val)
     return node;
 }
 
+node_t* create_postfix_node(char* identifier, char* op)
+{
+    node_t* node = create_node(NODE_POSTFIX);
+    postfix_data* data = (postfix_data*) node->data;
+
+    data->identifier = identifier;
+    data->op = op;
+
+    return node;
+}
+
 node_t* handle_parent_block(node_t* parent, node_type_e parent_type, node_t* child)
 {
     if (parent == NULL)
@@ -241,9 +293,53 @@ node_t* handle_parent_block(node_t* parent, node_type_e parent_type, node_t* chi
 
     if (child != NULL)
     {
-        node_t* child_arr[1] = { child };
-        add_child_to_parent_block(parent, 1, child_arr);
+        add_child_to_parent_block(parent, child);
     }
 
     return parent;
+}
+
+node_t* set_expr_paren(node_t* node)
+{
+    if (node->node_type == NODE_BIN_EXPR)
+    {
+        bin_expr_data* data = (bin_expr_data*) node->data;
+        data->in_parentheses = true;
+        return node;
+    }
+
+    else if (node->node_type == NODE_PRI)
+    {
+        primary_data* data = (primary_data*) node->data;
+        data->in_parentheses = true;
+        return node;
+    }
+
+    else
+    {
+        /* error, unknown type */
+        return node;
+    }
+}
+node_t* set_expr_unary(node_t* node, char unary)
+{
+    if (node->node_type == NODE_BIN_EXPR)
+    {
+        bin_expr_data* data = (bin_expr_data*) node->data;
+        data->unary = unary;
+        return node;
+    }
+
+    else if (node->node_type == NODE_PRI)
+    {
+        primary_data* data = (primary_data*) node->data;
+        data->unary = unary;
+        return node;
+    }
+
+    else
+    {
+        /* error, unknown type */
+        return node;
+    }
 }

@@ -1,7 +1,9 @@
-%token VAR STRING BOOL IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
+%token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
 %token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
-%token RIGHT_SHIFT LEFT_SHIFT
+%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
+%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL
+%token UNARY
 
 %{
 #include <stdio.h>
@@ -20,20 +22,31 @@
     node_t* nodeValue;
 }
 
-%type<stringValue> IDENTIFIER LITERAL_STRING type
+%type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
 %type<nodeValue> function_def function_call argument_defintion assignment
 %type<nodeValue> expression primary declaration declaration_with_assign statement argument
-%type<nodeValue> argument_definition_block statement_block argument_block
+%type<nodeValue> argument_definition_block statement_block argument_block postfix
+%type<nodeValue> array_declaration array_accessor literal literal_block
 
+%left PLUS_PLUS MINUS_MINUS '(' ')' '[' ']' '{' '}'
+%left '*' '/' '%'
+%left '+' '-'
+%left LEFT_SHIFT RIGHT_SHIFT
+%left '<' LESS_THAN_OR_EQUAL
+%left '>' GREATER_THAN_OR_EQUAL
+%left EQUAL_EQUAL NOT_EQUAL
+%left '&'
+%left '^'
+%left '|'
+%left LOGICAL_AND
+%left LOGICAL_OR
+%right '?' ':'
 %right '=' PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
 %right RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
-
-%left '+' '-' 
-%left '*' '/' '%'
-%left '&' '|' '^'
-%left RIGHT_SHIFT LEFT_SHIFT
+%right UNARY
+%left ','
 
 %%
 program
@@ -46,21 +59,31 @@ global_block
     ;
 
 function_def
-    : type IDENTIFIER '(' argument_definition_block ')' '{' statement_block '}' 
-    { $$ = create_func_def_node($1, $2, $4, $7); }
+    : type IDENTIFIER '(' ')' '{' statement_block '}' 
+    {
+        $6->increase_indent = true; 
+        $$ = create_func_def_node($1, $2, NULL, $6);
+    }
+    | type IDENTIFIER '(' argument_definition_block ')' '{' statement_block '}' 
+    {
+        $7->increase_indent = true; 
+        $$ = create_func_def_node($1, $2, $4, $7);
+    }
     ;
 
 argument_definition_block
-    : argument_definition_block argument_defintion
-    { $$ = handle_parent_block($1, NODE_ARG_DEF_BLOCK, $2); }
-    | /* empty */
-    { $$ = NULL; }
+    : argument_defintion
+    {
+        node_t* arg_def_block = create_node(NODE_ARG_DEF_BLOCK);
+        add_child_to_parent_block(arg_def_block, $1);
+        $$ = arg_def_block;
+    }
+    | argument_definition_block ',' argument_defintion
+    { $$ = handle_parent_block($1, NODE_ARG_DEF_BLOCK, $3); }
     ;
 
 argument_defintion
     : type IDENTIFIER ',' 
-    { $$ = create_arg_def_node($1, $2); }
-    | type IDENTIFIER
     { $$ = create_arg_def_node($1, $2); }
     ;
 
@@ -73,15 +96,44 @@ statement_block
 
 statement
     : function_call ';'
-    { $$ = $1; }
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | declaration_with_assign ';'
-    { $$ = $1; }
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | declaration ';'
-    { $$ = $1; }
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | assignment ';'
-    { $$ = $1; }
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | postfix ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | array_declaration ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | ';'
     { $$ = NULL; }
+    ;
+
+postfix
+    : IDENTIFIER PLUS_PLUS
+    { $$ = create_postfix_node($1, "++"); }
+    | IDENTIFIER MINUS_MINUS
+    { $$ = create_postfix_node($1, "--"); }
     ;
 
 assignment
@@ -111,7 +163,11 @@ assignment
 
 function_call
     : IDENTIFIER '(' argument_block ')' 
-    { $$ = create_func_call_node($1, $3); }
+    {
+        node_t* node = create_func_call_node($1, $3);
+        node->end_line = true;
+        $$ = node;
+    }
     ;
 
 argument_block
@@ -126,6 +182,22 @@ argument
     { $$ = $1; }
     | expression
     { $$ = $1; }
+    ;
+
+array_declaration
+    : ARRAY IDENTIFIER '[' ']' '=' '{' '}'
+    { $$ = create_array_dec_node($2, 0, NULL); }
+    | ARRAY IDENTIFIER '[' ']' '=' '{' literal_block '}'
+    { $$ = create_array_dec_node($2, 0, $7); }
+    | ARRAY IDENTIFIER '[' LITERAL_NUM ']' '=' '{' literal_block '}'
+    { $$ = create_array_dec_node($2, (int) $4, $8); }
+    | ARRAY IDENTIFIER '[' ']'
+    { $$ = create_array_dec_node($2, 0, NULL); }
+    ;
+
+array_accessor
+    : IDENTIFIER '[' expression ']'
+    { $$ = create_array_accessor_node($1, $3); }
     ;
 
 declaration
@@ -161,30 +233,64 @@ expression
     { $$ = create_bin_expr_node($1, $3, "^"); }
     | '(' expression ')'
     { 
-        bin_expr_data* data = (bin_expr_data*) $2->data;
-        data->in_parentheses = true;
-        $$ = $2; 
+        $$ = set_expr_paren($2);
+    }
+    | unary_operator expression %prec UNARY
+    {
+        $$ = set_expr_unary($2, $1[0]);
     }
     | primary
     { $$ = $1; }
     ;
 
 primary
-    : LITERAL_NUM
-    { $$ = create_primary_node_num(PRI_LITERAL_NUM, $1); }
-    | LITERAL_STRING
-    { $$ = create_primary_node_str(PRI_LITERAL_STR, $1); }
+    : literal
+    { $$ = $1; }
     | IDENTIFIER
     { $$ = create_primary_node_str(PRI_IDENTIFIER, $1); }
     | function_call
     { $$ = create_primary_node_nde(PRI_FUNC_CALL, $1); }
+    | array_accessor
+    { $$ = create_primary_node_nde(PRI_ARR_ACCESS, $1); }
+    ;
+
+literal
+    : LITERAL_NUM
+    { $$ = create_primary_node_num(PRI_LITERAL_NUM, $1); }
+    | LITERAL_STRING
+    { $$ = create_primary_node_str(PRI_LITERAL_STR, $1); }
+    ;
+
+literal_block
+    : literal
+    {
+        node_t* literal_block = create_node(NODE_LIT_BLOCK);
+        add_child_to_parent_block(literal_block, $1);
+        $$ = literal_block;
+    }
+    | literal_block ',' literal
+    { $$ = handle_parent_block($1, NODE_LIT_BLOCK, $3); }
     ;
 
 type
     : VAR { $$ = "var"; }
     | BOOL { $$ = "bool"; }
     | STRING { $$ = "string"; }
+    | ARRAY { $$ = "array"; }
     | IDENTIFIER { $$ = $1; }
+    ;
+
+unary_operator
+    : '&'
+    { $$ = "&"; }
+    | '+'
+    { $$ = "+"; }
+    | '-'
+    { $$ = "-"; }
+    | '~'
+    { $$ = "~"; }
+    | '!'
+    { $$ = "!"; }
     ;
 %%
 
