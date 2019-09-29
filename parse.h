@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+int yylineno;
+
 int yylex(void);
 int yyparse(void);
 void yyerror(char* s);

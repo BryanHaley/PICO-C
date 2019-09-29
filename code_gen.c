@@ -4,9 +4,9 @@
 #include "tree_handler.h"
 #include "ast.h"
 
-void generate_code(tree_t* syntax_tree)
+void generate_code(FILE* out, tree_t* syntax_tree)
 {
-    output_file = stdout;
+    output_file = out;
 
     fprintf(output_file, "\n");
     generate_node(syntax_tree->global_block);

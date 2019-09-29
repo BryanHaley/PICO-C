@@ -12,7 +12,12 @@
 #include "parse.h"
 #include "ast.h"
 #include "tree_handler.h"
+#include "code_gen.h"
+
+FILE *yyin;
 %}
+
+%locations
 
 %union
 {
@@ -101,7 +106,7 @@ argument_definition_block
     ;
 
 argument_defintion
-    : type IDENTIFIER ',' 
+    : type IDENTIFIER
     { $$ = create_arg_def_node($1, $2); }
     ;
 
@@ -346,7 +351,41 @@ unary_operator
 
 void yyerror (char *s) 
 {
-   fprintf (stderr, "%s\n", s);
+   fprintf(stderr, "Error | Line: %d\n%s\n", yylineno, s);
 
    err_in_parse = true;
+}
+
+int main(int argc, char** argv) 
+{    
+    yyin = fopen(argv[1], "r");
+    yyparse();
+
+    if (!err_in_lex && !err_in_parse)
+    {
+        FILE* out = fopen(argv[2], "w+");
+        
+        generate_code(out, syntax_tree);
+
+        fclose(out);
+    }
+
+    else if (err_in_lex)
+    {
+        fprintf(stderr, "Error in lexical analysis. Aborting code generation.\n");
+    }
+
+    else if (err_in_parse)
+    {
+        fprintf(stderr, "Error in semantic analysis. Aborting code generation.\n");
+    }
+
+    else
+    {
+        fprintf(stderr, "Unknown error. Aborting code generation.\n");
+    }
+
+    fclose(yyin);
+
+    return 0; 
 }

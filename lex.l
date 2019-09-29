@@ -14,12 +14,12 @@ IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 #include "ast.h"
 #include "parse.h"
 #include "y.tab.h"
-#include "code_gen.h"
 %}
+
+%option yylineno
 
 %% 
 <<EOF>>                 { return 0; }
-\n                      { return 0; }
 
 [ \t\v\n\f]             { /* consume whitespace */ }
 "//"[^\n]*              { /* consume //-comment */ }
@@ -112,30 +112,3 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
                         }
 
 %%
-
-int main(int argc, char** args) 
-{    
-    yyparse();
-
-    if (!err_in_lex && !err_in_parse)
-    {
-        generate_code(syntax_tree);
-    }
-
-    else if (err_in_lex)
-    {
-        fprintf(stderr, "Error in lexical analysis. Aborting code generation.\n");
-    }
-
-    else if (err_in_parse)
-    {
-        fprintf(stderr, "Error in semantic analysis. Aborting code generation.\n");
-    }
-
-    else
-    {
-        fprintf(stderr, "Unknown error. Aborting code generation.\n");
-    }
-
-    return 0; 
-}
