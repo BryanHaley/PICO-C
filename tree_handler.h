@@ -31,6 +31,6 @@ node_t* create_postfix_node(char* identifier, char* op);
 
 node_t* handle_parent_block(node_t* parent, node_type_e parent_type, node_t* child);
 node_t* set_expr_paren(node_t* node);
-node_t* set_expr_unary(node_t* node, char unary);
+node_t* set_expr_unary(node_t* node, char* unary);
 
 #endif

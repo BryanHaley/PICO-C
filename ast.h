@@ -40,6 +40,7 @@ struct node_t
     node_type_e node_type;
     bool end_line;
     bool increase_indent;
+    bool global;
     
     void *data;
 };
@@ -118,7 +119,7 @@ typedef struct
     char* op;
     
     bool in_parentheses;
-    char unary;
+    char* unary;
 } bin_expr_data;
 
 typedef struct
@@ -127,7 +128,7 @@ typedef struct
     primary_value val;
 
     bool in_parentheses;
-    char unary;
+    char* unary;
 } primary_data;
 
 typedef struct

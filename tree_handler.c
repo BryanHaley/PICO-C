@@ -111,11 +111,6 @@ void create_global_block()
     syntax_tree->global_block = global_block;
 }
 
-void add_func_def_to_global_block(node_t* node)
-{
-    add_child_to_parent_block(syntax_tree->global_block, node);
-}
-
 node_t* create_func_def_node(char* return_type, char* identifier, node_t* arg_def_block, 
                              node_t* stmnt_block)
 {
@@ -321,7 +316,7 @@ node_t* set_expr_paren(node_t* node)
         return node;
     }
 }
-node_t* set_expr_unary(node_t* node, char unary)
+node_t* set_expr_unary(node_t* node, char* unary)
 {
     if (node->node_type == NODE_BIN_EXPR)
     {

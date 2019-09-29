@@ -3,7 +3,7 @@
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL
-%token UNARY
+%token GLOBAL LENGTH UNARY
 
 %{
 #include <stdio.h>
@@ -55,7 +55,25 @@ program
 
 global_block
     : function_def
-    { add_func_def_to_global_block($1); }
+    { 
+        $1->global = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
+    | declaration ';'
+    {
+        $1->global = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
+    | declaration_with_assign ';'
+    {
+        $1->global = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
+    | array_declaration ';'
+    {
+        $1->global = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
     ;
 
 function_def
@@ -193,6 +211,30 @@ array_declaration
     { $$ = create_array_dec_node($2, (int) $4, $8); }
     | ARRAY IDENTIFIER '[' ']'
     { $$ = create_array_dec_node($2, 0, NULL); }
+    | GLOBAL ARRAY IDENTIFIER '[' ']' '=' '{' '}'
+    { 
+        node_t* node = create_array_dec_node($3, 0, NULL);
+        node->global = true;
+        $$ = node;
+    }
+    | GLOBAL ARRAY IDENTIFIER '[' ']' '=' '{' literal_block '}'
+    {
+        node_t* node = create_array_dec_node($3, 0, $8);
+        node->global = true;
+        $$ = node;
+    }
+    | GLOBAL ARRAY IDENTIFIER '[' LITERAL_NUM ']' '=' '{' literal_block '}'
+    {
+        node_t* node = create_array_dec_node($3, (int) $5, $9);
+        node->global = true;
+        $$ = node;
+    }
+    | GLOBAL ARRAY IDENTIFIER '[' ']'
+    {
+        node_t* node = create_array_dec_node($3, 0, NULL);
+        node->global = true;
+        $$ = node;
+    }
     ;
 
 array_accessor
@@ -203,11 +245,23 @@ array_accessor
 declaration
     : type IDENTIFIER
     { $$ = create_declaration_node($1, $2); }
+    | GLOBAL type IDENTIFIER
+    {
+        node_t* node = create_declaration_node($2, $3);
+        node->global = true;
+        $$ = node;
+    }
     ;
 
 declaration_with_assign
     : type IDENTIFIER '=' expression
     { $$ = create_declaration_with_assign_node($1, $2, $4); }
+    | GLOBAL type IDENTIFIER '=' expression
+    {
+        node_t* node = create_declaration_with_assign_node($2, $3, $5);
+        node->global = true;
+        $$ = node;
+    }
     ;
 
 expression
@@ -237,7 +291,7 @@ expression
     }
     | unary_operator expression %prec UNARY
     {
-        $$ = set_expr_unary($2, $1[0]);
+        $$ = set_expr_unary($2, $1);
     }
     | primary
     { $$ = $1; }
@@ -281,16 +335,12 @@ type
     ;
 
 unary_operator
-    : '&'
-    { $$ = "&"; }
-    | '+'
-    { $$ = "+"; }
-    | '-'
+    : '-'
     { $$ = "-"; }
-    | '~'
-    { $$ = "~"; }
+    | LENGTH
+    { $$ = "length"; }
     | '!'
-    { $$ = "!"; }
+    { $$ = "not"; }
     ;
 %%
 

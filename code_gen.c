@@ -152,7 +152,7 @@ void generate_bin_expr(node_t* node)
     
     bin_expr_data* data = (bin_expr_data*) node->data;
 
-    if (data->unary != 0) { fprintf(output_file, "%c", data->unary); }
+    if (data->unary != NULL) { fprintf(output_file, "%s", data->unary); }
 
     if (data->in_parentheses) { fprintf(output_file, "("); }
 
@@ -169,7 +169,7 @@ void generate_primary(node_t* node)
     
     primary_data* data = (primary_data*) node->data;
 
-    if (data->unary != 0) { fprintf(output_file, "%c", data->unary); }
+    if (data->unary != NULL) { fprintf(output_file, "%s", data->unary); }
 
     if (data->in_parentheses) { fprintf(output_file, "("); }
 
@@ -213,7 +213,10 @@ void generate_declaration(node_t* node)
         return;
     }
 
-    fprintf(output_file, "local %s\n", data->identifier);
+    if (node->global) { fprintf(output_file, "global "); }
+    else              { fprintf(output_file, "local ");  }
+
+    fprintf(output_file, "%s\n", data->identifier);
 }
 
 void generate_declaration_with_assign(node_t* node)
@@ -222,7 +225,10 @@ void generate_declaration_with_assign(node_t* node)
 
     declaration_with_assign_data* data = (declaration_with_assign_data*) node->data;
 
-    fprintf(output_file, "local %s = ", data->identifier);
+    if (node->global) { fprintf(output_file, "global "); }
+    else              { fprintf(output_file, "local ");  }
+
+    fprintf(output_file, "%s = ", data->identifier);
 
     generate_node(data->expr);
 
@@ -277,7 +283,10 @@ void generate_array_declaration(node_t* node)
         }
     }
 
-    fprintf(output_file, "%s[", data->identifier);
+    if (node->global) { fprintf(output_file, "global "); }
+    else              { fprintf(output_file, "local ");  }
+
+    fprintf(output_file, "%s", data->identifier);
 
     if (data->size > 0 && has_literal_block)
     {
@@ -286,8 +295,6 @@ void generate_array_declaration(node_t* node)
             // error, array initializer must has 1 or n elements
             return;
         }
-
-        fprintf(output_file, "%d", data->size);
     }
 
     else if (data->size > 0 && !has_literal_block)
@@ -296,7 +303,7 @@ void generate_array_declaration(node_t* node)
         return;
     }
 
-    fprintf(output_file, "] = { ");
+    fprintf(output_file, " = { ");
 
     if (has_literal_block)
     {
