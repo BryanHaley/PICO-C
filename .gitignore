@@ -59,6 +59,9 @@ y.tab.c
 y.tab.h
 *.yy.c
 
+# Test files
+tests/
+
 # macOS
 ._*
 .DS_Store

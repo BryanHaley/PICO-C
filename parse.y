@@ -3,7 +3,7 @@
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL
-%token GLOBAL LENGTH UNARY
+%token STRUCT GLOBAL LENGTH UNARY NEW
 
 %{
 #include <stdio.h>
@@ -33,7 +33,9 @@ FILE *yyin;
 %type<nodeValue> function_def function_call argument_defintion assignment
 %type<nodeValue> expression primary declaration declaration_with_assign statement argument
 %type<nodeValue> argument_definition_block statement_block argument_block postfix
-%type<nodeValue> array_declaration array_accessor literal literal_block
+%type<nodeValue> array_declaration literal literal_block struct_init struct_definition
+%type<nodeValue> struct_member_definition_block struct_member_definition
+%type<nodeValue> array_access array_accessor array_multi_access
 
 %left PLUS_PLUS MINUS_MINUS '(' ')' '[' ']' '{' '}'
 %left '*' '/' '%'
@@ -59,26 +61,73 @@ program
     ;
 
 global_block
+    : global_statement
+    | global_block global_statement
+    ;
+
+global_statement
     : function_def
     { 
-        $1->global = true; $1->end_line = true;
+        $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
     | declaration ';'
     {
-        $1->global = true; $1->end_line = true;
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
     | declaration_with_assign ';'
     {
-        $1->global = true; $1->end_line = true;
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
     | array_declaration ';'
     {
-        $1->global = true; $1->end_line = true;
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
+    | struct_definition
+    {
+        $1->global_statement = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
+    ;
+
+struct_definition
+    : STRUCT IDENTIFIER '{' struct_member_definition_block '}'
+    {
+        $4->increase_indent = true;
+        $$ = create_struct_def_node($2, $4);
+    }
+    ;
+
+struct_member_definition_block
+    : struct_member_definition
+    {
+        node_t* struct_member_definition_block = create_node(NODE_STRUCT_MEM_BLOCK);
+        add_child_to_parent_block(struct_member_definition_block, $1);
+        $$ = struct_member_definition_block;
+    }
+    | struct_member_definition_block struct_member_definition
+    { $$ = handle_parent_block($1, NODE_STRUCT_MEM_BLOCK, $2); }
+    ;
+
+struct_member_definition
+    : declaration_with_assign ';'
+    {
+        $1->member = true;
+        $$ = $1;
+    }
+    | declaration ';'
+    {
+        $1->member = true;
+        $$ = $1;
+    }
+    ;
+
+struct_init
+    : type IDENTIFIER '=' NEW type
+    { $$ = create_struct_init_node($1, $2); }
     ;
 
 function_def
@@ -144,6 +193,11 @@ statement
         $$ = $1;
     }
     | array_declaration ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | struct_init ';'
     {
         $1->end_line = true;
         $$ = $1;
@@ -242,9 +296,25 @@ array_declaration
     }
     ;
 
+array_access
+    : IDENTIFIER array_multi_access
+    { $$ = create_array_access_node($1, $2); }
+    ;
+
+array_multi_access
+    : array_accessor
+    {
+        node_t* arr_m_accessor = create_node(NODE_ARR_MULTI_ACCESSOR);
+        add_child_to_parent_block(arr_m_accessor, $1);
+        $$ = arr_m_accessor;
+    }
+    | array_multi_access array_accessor
+    { $$ = handle_parent_block($1, NODE_ARR_MULTI_ACCESSOR, $2); }
+    ;
+
 array_accessor
-    : IDENTIFIER '[' expression ']'
-    { $$ = create_array_accessor_node($1, $3); }
+    : '[' expression ']'
+    { $$ = create_array_accessor_node($2); }
     ;
 
 declaration
@@ -309,7 +379,7 @@ primary
     { $$ = create_primary_node_str(PRI_IDENTIFIER, $1); }
     | function_call
     { $$ = create_primary_node_nde(PRI_FUNC_CALL, $1); }
-    | array_accessor
+    | array_access
     { $$ = create_primary_node_nde(PRI_ARR_ACCESS, $1); }
     ;
 
@@ -336,6 +406,7 @@ type
     | BOOL { $$ = "bool"; }
     | STRING { $$ = "string"; }
     | ARRAY { $$ = "array"; }
+    | STRUCT { $$ = "struct"; }
     | IDENTIFIER { $$ = $1; }
     ;
 

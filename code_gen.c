@@ -7,19 +7,31 @@
 void generate_code(FILE* out, tree_t* syntax_tree)
 {
     output_file = out;
-
-    fprintf(output_file, "\n");
+    
     generate_node(syntax_tree->global_block);
     fprintf(output_file, "\n");
+
+    // Print utility functions at end of file for now
+    fprintf(output_file, "-- COMPILER UTILITY FUNCTIONS --");
+    char* LUA_SHALLOW_COPY_FUNCTION = 
+    "function table._PC_SHALLOW_COPY(t)\n"
+    INDENT_TOKEN "local t2 = {}\n"
+    INDENT_TOKEN "for k,v in pairs(t) do\n" // TODO: make sure k,v aren't defined elsewhere
+    INDENT_TOKEN INDENT_TOKEN "t2[k] = v\n"
+    INDENT_TOKEN "end\n"
+    INDENT_TOKEN "return t2\n"
+    "end\n\n";
+    fprintf(output_file, "\n%s", LUA_SHALLOW_COPY_FUNCTION);
 }
 
 void generate_node(node_t* node)
 {
     if (node == NULL) { return; }
 
-    if (node->increase_indent) { indent_level++; }
+    if      (node->global_statement) { indent_level = 0; }
+    else if (node->increase_indent)  { indent_level++;   }
     
-    if (node->end_line) for (int i = 0; i < indent_level; i++)
+    if (node->end_line || node->member) for (int i = 0; i < indent_level; i++)
     {
         fprintf(output_file, INDENT_TOKEN);
     }
@@ -33,16 +45,19 @@ void generate_node(node_t* node)
             generate_func_call(node);
             break;
         case (NODE_ARG_DEF_BLOCK):
-            generate_parent_block(node, true);
+            generate_parent_block(node, ", ");
             break;
         case (NODE_ARG_DEF):
             generate_arg_def(node);
             break;
         case (NODE_ARG_BLOCK):
-            generate_parent_block(node, true);
+            generate_parent_block(node, ", ");
             break;
         case (NODE_LIT_BLOCK):
-            generate_parent_block(node, true);
+            generate_parent_block(node, ", ");
+            break;
+        case (NODE_STRUCT_MEM_BLOCK):
+            generate_parent_block(node, ",\n");
             break;
         case (NODE_BIN_EXPR):
             generate_bin_expr(node);
@@ -66,22 +81,33 @@ void generate_node(node_t* node)
             generate_postfix(node);
             break;
         case (NODE_ARR_ACCESS):
+            generate_array_access(node);
+            break;
+        case (NODE_ARR_ACCESSOR):
             generate_array_accessor(node);
             break;
         case (NODE_ARR_DEC):
             generate_array_declaration(node);
             break;
+        case (NODE_STRUCT_DEF):
+            generate_struct_declaration(node);
+            break;
+        case (NODE_STRUCT_INIT):
+            generate_struct_initialization(node);
+            break;
         default:
-            generate_parent_block(node, false);
+            generate_parent_block(node, NULL);
             break;
     }
 
-    if (node->end_line && node->increase_indent && indent_level > 0) { indent_level--; }
+    if ((node->end_line || node->member) && node->increase_indent && indent_level > 0)
+    { indent_level--; }
 
-    if (node->end_line) { fprintf(output_file, "\n"); }
+    if (node->end_line)
+    { fprintf(output_file, "\n"); }
 }
 
-void generate_parent_block(node_t* parent, bool comma_delim)
+void generate_parent_block(node_t* parent, char* delim)
 {
     if (parent == NULL) { return; }
 
@@ -91,9 +117,9 @@ void generate_parent_block(node_t* parent, bool comma_delim)
     {
         generate_node(parent_data->children[i]);
 
-        if (comma_delim && i != parent_data->num_children-1)
+        if (delim != NULL && i != parent_data->num_children-1)
         {
-            fprintf(output_file, ", ");
+            fprintf(output_file, "%s", delim);
         }
     }
 }
@@ -118,7 +144,7 @@ void generate_func_def(node_t* node)
         generate_node(data->statement_block); 
     }
 
-    fprintf(output_file, "end");
+    fprintf(output_file, "end\n");
 }
 
 void generate_arg_def(node_t* node)
@@ -213,10 +239,22 @@ void generate_declaration(node_t* node)
         return;
     }
 
-    if (node->global) { fprintf(output_file, "global "); }
-    else              { fprintf(output_file, "local ");  }
+    if (!node->member)
+    {
+        if (node->global) { fprintf(output_file, "global "); }
+        else              { fprintf(output_file, "local ");  }
+    }
 
-    fprintf(output_file, "%s\n", data->identifier);
+    fprintf(output_file, "%s", data->identifier);
+
+    if (strcmp(data->type, "var") == 0)
+    { fprintf(output_file, " = 0"); }
+    else if (strcmp(data->type, "string") == 0)
+    { fprintf(output_file, " = \"\""); }
+    else if (strcmp(data->type, "bool") == 0)
+    { fprintf(output_file, " = false"); }
+    else
+    { fprintf(output_file, " = nil"); }
 }
 
 void generate_declaration_with_assign(node_t* node)
@@ -225,14 +263,15 @@ void generate_declaration_with_assign(node_t* node)
 
     declaration_with_assign_data* data = (declaration_with_assign_data*) node->data;
 
-    if (node->global) { fprintf(output_file, "global "); }
-    else              { fprintf(output_file, "local ");  }
+    if (!node->member)
+    {
+        if (node->global) { fprintf(output_file, "global "); }
+        else              { fprintf(output_file, "local ");  }
+    }
 
     fprintf(output_file, "%s = ", data->identifier);
 
     generate_node(data->expr);
-
-    fprintf(output_file, "\n");
 }
 
 void generate_postfix(node_t* node)
@@ -244,21 +283,30 @@ void generate_postfix(node_t* node)
     fprintf(output_file, "%s%s", data->identifier, data->op);
 }
 
-void generate_array_accessor(node_t* node)
+void generate_array_access(node_t* node)
 {
     if (node == NULL) { return; }
 
-    array_accessor_data* data = (array_accessor_data*) node->data;
+    array_access_data* data = (array_access_data*) node->data;
 
-    fprintf(output_file, "%s[", data->identifier);
+    fprintf(output_file, "%s", data->identifier);
 
     /* TODO: Figure out if I only want to allow 'sane' indices or not.
      *       i.e. only allow indexes of 0 to n, as opposed to an associative array.
      *       Might separate those into arrays and tables, respectively.
      */
 
-    generate_node(data->expr);
+    generate_node(data->accessors);
+}
 
+void generate_array_accessor(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    array_accessor_data* data = (array_accessor_data*) node->data;
+
+    fprintf(output_file, "[");
+    generate_node(data->expr);
     fprintf(output_file, "]");
 }
 
@@ -335,4 +383,27 @@ void generate_array_declaration(node_t* node)
     {
         fprintf(output_file, "}");
     }
+}
+
+void generate_struct_declaration(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    struct_def_data* data = (struct_def_data*) node->data;
+
+    fprintf(output_file, "%s = readonlytable\n{\n", data->identifier);
+
+    generate_node(data->member_block);
+
+    fprintf(output_file, "\n}\n");
+}
+
+void generate_struct_initialization(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    struct_init_data* data = (struct_init_data*) node->data;
+
+    // TODO: don't hard-code compiler utility methods
+    fprintf(output_file, "%s = table._PC_SHALLOW_COPY(%s)", data->identifier, data->type);
 }

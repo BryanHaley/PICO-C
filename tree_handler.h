@@ -20,8 +20,11 @@ node_t* create_arg_def_node(char* type, char* identifier);
 node_t* create_assign_node(char* identifier, node_t* expr, char* op);
 node_t* create_declaration_node(char* type, char* identifier);
 node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t* expr);
-node_t* create_array_accessor_node(char* identifier, node_t* expr);
+node_t* create_array_access_node(char* identifier, node_t* accessor);
+node_t* create_array_accessor_node(node_t* expr);
 node_t* create_array_dec_node(char* identifier, int size, node_t* literal_block);
+node_t* create_struct_def_node(char* identifier, node_t* member_block);
+node_t* create_struct_init_node(char* type, char* identifier);
 
 node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char* op);
 node_t* create_primary_node_num(primary_type_e val_type, double val);

@@ -42,10 +42,19 @@ node_t* create_node(node_type_e node_type)
             node->data = calloc(1, sizeof(postfix_data));
             break;
         case (NODE_ARR_ACCESS):
+            node->data = calloc(1, sizeof(array_access_data));
+            break;
+        case (NODE_ARR_ACCESSOR):
             node->data = calloc(1, sizeof(array_accessor_data));
             break;
         case (NODE_ARR_DEC):
             node->data = calloc(1, sizeof(array_dec_data));
+            break;
+        case (NODE_STRUCT_DEF):
+            node->data = calloc(1, sizeof(struct_def_data));
+            break;
+        case (NODE_STRUCT_INIT):
+            node->data = calloc(1, sizeof(struct_init_data));
             break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
@@ -191,12 +200,23 @@ node_t* create_declaration_with_assign_node(char* type, char* identifier, node_t
     return node;
 }
 
-node_t* create_array_accessor_node(char* identifier, node_t* expr)
+node_t* create_array_access_node(char* identifier, node_t* accessors)
+{
+    node_t* node = create_node(NODE_ARR_ACCESS);
+    array_access_data* data = (array_access_data*) node->data;
+
+    data->accessors = accessors;
+
+    if (accessors != NULL) { accessors->parent = node; }
+
+    return node;
+}
+
+node_t* create_array_accessor_node(node_t* expr)
 {
     node_t* node = create_node(NODE_ARR_ACCESS);
     array_accessor_data* data = (array_accessor_data*) node->data;
 
-    data->identifier = identifier;
     data->expr = expr;
 
     if (expr != NULL) { expr->parent = node; }
@@ -279,6 +299,19 @@ node_t* create_postfix_node(char* identifier, char* op)
     return node;
 }
 
+node_t* create_struct_def_node(char* identifier, node_t* member_block)
+{
+    node_t* node = create_node(NODE_STRUCT_DEF);
+    struct_def_data* data = (struct_def_data*) node->data;
+
+    data->identifier = identifier;
+    data->member_block = member_block;
+
+    if (member_block != NULL) { member_block->parent = node; }
+
+    return node;
+}
+
 node_t* handle_parent_block(node_t* parent, node_type_e parent_type, node_t* child)
 {
     if (parent == NULL)
@@ -337,4 +370,15 @@ node_t* set_expr_unary(node_t* node, char* unary)
         /* error, unknown type */
         return node;
     }
+}
+
+node_t* create_struct_init_node(char* type, char* identifier)
+{
+    node_t* node = create_node(NODE_STRUCT_INIT);
+    struct_init_data* data = (struct_init_data*) node->data;
+
+    data->type = type;
+    data->identifier = identifier;
+
+    return node;
 }

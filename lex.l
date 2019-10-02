@@ -42,6 +42,9 @@ ARRAY                   { return ARRAY; }
 arr                     { return ARRAY; }
 Arr                     { return ARRAY; }
 ARR                     { return ARRAY; }
+struct                  { return STRUCT; }
+Struct                  { return STRUCT; }
+STRUCT                  { return STRUCT; }
 
 global                  { return GLOBAL; }
 Global                  { return GLOBAL; }
@@ -50,6 +53,10 @@ GLOBAL                  { return GLOBAL; }
 length                  { return LENGTH; }
 Length                  { return LENGTH; }
 LENGTH                  { return LENGTH; }
+
+new                     { return NEW; }
+New                     { return NEW; }
+NEW                     { return NEW; }
 
 true                    { yylval.boolValue = true; return LITERAL_BOOL; }
 True                    { yylval.boolValue = true; return LITERAL_BOOL; }

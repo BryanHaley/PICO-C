@@ -4,10 +4,13 @@
 #include <stdbool.h>
 
 /* WHEN CREATING A NEW NODE TYPE:
- * Add its type to the node_type_e enum
+ * Add its type to the node_type_e enum.
+ * Declare its data struct below.
+ * Write "create" method in tree_handler.c
  * Add a case to the switch in create_node in tree_handler.c
+ * Write "generate" method in code_gen.c
  * Add a case to the switch in generate_node in code_gen.c
- * Don't forget to use breaks
+ * Don't forget to use breaks in above switch statements.
  */
 
 typedef enum 
@@ -28,8 +31,13 @@ typedef enum
     NODE_PRIMARY,
     NODE_POSTFIX,
     NODE_ARR_ACCESS,
+    NODE_ARR_ACCESSOR,
+    NODE_ARR_MULTI_ACCESSOR,
     NODE_ARR_DEC,
-    NODE_LIT_BLOCK
+    NODE_LIT_BLOCK,
+    NODE_STRUCT_MEM_BLOCK,
+    NODE_STRUCT_DEF,
+    NODE_STRUCT_INIT
 } node_type_e;
 
 typedef struct node_t node_t;
@@ -41,6 +49,8 @@ struct node_t
     bool end_line;
     bool increase_indent;
     bool global;
+    bool member;
+    bool global_statement;
     
     void *data;
 };
@@ -140,6 +150,11 @@ typedef struct
 typedef struct
 {
     char* identifier;
+    node_t* accessors;
+} array_access_data;
+
+typedef struct
+{
     node_t* expr;
 } array_accessor_data;
 
@@ -149,5 +164,17 @@ typedef struct
     int size;
     node_t* literal_block;
 } array_dec_data;
+
+typedef struct
+{
+    char* identifier;
+    node_t* member_block;
+} struct_def_data;
+
+typedef struct
+{
+    char* type;
+    char* identifier;
+} struct_init_data;
 
 #endif
