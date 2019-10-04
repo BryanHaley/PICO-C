@@ -12,16 +12,18 @@ void generate_code(FILE* out, tree_t* syntax_tree)
     fprintf(output_file, "\n");
 
     // Print utility functions at end of file for now
-    fprintf(output_file, "-- COMPILER UTILITY FUNCTIONS --");
-    char* LUA_SHALLOW_COPY_FUNCTION = 
-    "function table._PC_SHALLOW_COPY(t)\n"
-    INDENT_TOKEN "local t2 = {}\n"
-    INDENT_TOKEN "for k,v in pairs(t) do\n" // TODO: make sure k,v aren't defined elsewhere
-    INDENT_TOKEN INDENT_TOKEN "t2[k] = v\n"
-    INDENT_TOKEN "end\n"
-    INDENT_TOKEN "return t2\n"
-    "end\n\n";
-    fprintf(output_file, "\n%s", LUA_SHALLOW_COPY_FUNCTION);
+    FILE* util_functions = fopen("compiler_util_functions.lua", "r");
+
+    int c = 1;
+
+    while (c != EOF)
+    {
+        c = fgetc(util_functions);
+
+        if (c == EOF) { break; }
+
+        fprintf(output_file, "%c", (char) c);
+    }
 }
 
 void generate_node(node_t* node)
@@ -59,6 +61,9 @@ void generate_node(node_t* node)
         case (NODE_STRUCT_MEM_BLOCK):
             generate_parent_block(node, ",\n");
             break;
+        case (NODE_OBJ_ACCESSOR_BLOCK):
+            generate_parent_block(node, ".");
+            break;
         case (NODE_BIN_EXPR):
             generate_bin_expr(node);
             break;
@@ -89,11 +94,20 @@ void generate_node(node_t* node)
         case (NODE_ARR_DEC):
             generate_array_declaration(node);
             break;
+        case (NODE_ARR_DIM):
+            generate_array_dim(node);
+            break;
+        case (NODE_ARR_MULTI_DIM_DEC):
+            generate_mutli_dim_array_dec(node);
+            break;
         case (NODE_STRUCT_DEF):
             generate_struct_declaration(node);
             break;
         case (NODE_STRUCT_INIT):
             generate_struct_initialization(node);
+            break;
+        case (NODE_SYMBOL):
+            generate_symbol(node);
             break;
         default:
             generate_parent_block(node, NULL);
@@ -222,7 +236,9 @@ void generate_assignment(node_t* node)
 
     assign_data* data = (assign_data*) node->data;
 
-    fprintf(output_file, "%s %s ", data->identifier, data->op);
+    generate_node(data->dest);
+
+    fprintf(output_file, " %s ", data->op);
 
     generate_node(data->expr);
 }
@@ -405,5 +421,41 @@ void generate_struct_initialization(node_t* node)
     struct_init_data* data = (struct_init_data*) node->data;
 
     // TODO: don't hard-code compiler utility methods
-    fprintf(output_file, "%s = table._PC_SHALLOW_COPY(%s)", data->identifier, data->type);
+    fprintf(output_file, "%s = _PCC_SHALLOW_COPY(%s)", data->identifier, data->type);
+}
+
+void generate_array_dim(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    array_dim_data* data = (array_dim_data*) node->data;
+
+    fprintf(output_file, "[%d]", data->num);
+}
+
+void generate_mutli_dim_array_dec(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    array_multidim_dec_data* data = (array_multidim_dec_data*) node->data;
+
+    parent_block_data* dimensions_data = (parent_block_data*) (data->dimensions->data);
+    int num_dimensions = dimensions_data->num_children;
+
+    if (node->global) { fprintf(output_file, "global "); }
+    else              { fprintf(output_file, "local ");  }
+
+    // TODO: don't hard-code compiler utility methods
+    fprintf(output_file, "%s = _PCC_NEW_MULTI_DIM_ARRAY(%d)", data->identifier, num_dimensions);
+
+    /* TODO: generate for loops for setting initial value */
+}
+
+void generate_symbol(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    symbol_data* data = (symbol_data*) node->data;
+
+    fprintf(output_file, "%s", data->identifier);
 }

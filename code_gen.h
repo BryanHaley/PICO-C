@@ -26,8 +26,11 @@ void generate_declaration_with_assign(node_t* node);
 void generate_postfix(node_t* node);
 void generate_array_access(node_t* node);
 void generate_array_accessor(node_t* node);
+void generate_array_dim(node_t* node);
+void generate_mutli_dim_array_dec(node_t* node);
 void generate_array_declaration(node_t* node);
 void generate_struct_declaration(node_t* node);
 void generate_struct_initialization(node_t* node);
+void generate_symbol(node_t* node);
 
 #endif

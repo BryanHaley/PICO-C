@@ -1,11 +1,12 @@
+CC = gcc
+LEX = flex
+YACC = bison
+
 all:
-	lex -l lex.l
-	yacc -v -d parse.y
-	gcc -g -ll -o build/pcc tree_handler.c code_gen.c lex.yy.c y.tab.c
-	cp compiler-util-functions.lua ./build/
+	$(LEX) -l -o pcc_scanner.c --yylineno pcc_syntax.l
+	$(YACC) -v -d pcc_grammar.y -o pcc_parser.c
+	$(CC) -g -ll -o build/pcc tree_handler.c code_gen.c pcc_scanner.c pcc_parser.c
+	cp compiler_util_functions.lua ./build/
 clean:
-	-rm y.tab.c y.tab.h lex.yy.c y.output
+	-rm pcc_scanner.c pcc_parser.h pcc_parser.c pcc_parser.output
 	-rm -r build
-	-rm -r out
-	mkdir build
-	mkdir out

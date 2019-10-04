@@ -12,11 +12,9 @@ IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 #include <string.h>
 #include <stdbool.h>
 #include "ast.h"
-#include "parse.h"
-#include "y.tab.h"
+#include "pcc_grammar.h"
+#include "pcc_parser.h"
 %}
-
-%option yylineno
 
 %% 
 <<EOF>>                 { return 0; }
@@ -92,11 +90,11 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 "||"                    { return LOGICAL_OR; }
 "<="                    { return LESS_THAN_OR_EQUAL; }
 ">="                    { return GREATER_THAN_OR_EQUAL; }
+"="                     { return('=');  }
 "("                     { return('(');  }
 ")"                     { return(')');  }
 "{"                     { return('{');  }
 "}"                     { return('}');  }
-"="                     { return('=');  }
 ";"                     { return(';');  }
 ","                     { return(',');  }
 "+"                     { return('+');  }
@@ -111,6 +109,7 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 ">"                     { return('>');  }
 "["                     { return('[');  }
 "]"                     { return(']');  }
+"."                     { return('.');  }
 
 .                       { 
                             printf("Unrecognized token: %s\n", yytext); 

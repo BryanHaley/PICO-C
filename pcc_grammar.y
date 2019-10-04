@@ -1,15 +1,8 @@
-%token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
-%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
-%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
-%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
-%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL
-%token STRUCT GLOBAL LENGTH UNARY NEW
-
 %{
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "parse.h"
+#include "pcc_grammar.h"
 #include "ast.h"
 #include "tree_handler.h"
 #include "code_gen.h"
@@ -17,6 +10,7 @@
 FILE *yyin;
 %}
 
+%glr-parser
 %locations
 
 %union
@@ -27,6 +21,13 @@ FILE *yyin;
     node_t* nodeValue;
 }
 
+%token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
+%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
+%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
+%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
+%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL
+%token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE
+
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
@@ -34,8 +35,9 @@ FILE *yyin;
 %type<nodeValue> expression primary declaration declaration_with_assign statement argument
 %type<nodeValue> argument_definition_block statement_block argument_block postfix
 %type<nodeValue> array_declaration literal literal_block struct_init struct_definition
-%type<nodeValue> struct_member_definition_block struct_member_definition
-%type<nodeValue> array_access array_accessor array_multi_access
+%type<nodeValue> struct_member_definition_block struct_member_definition array_dimension
+%type<nodeValue> array_access array_accessor array_multi_access array_dimensions
+%type<nodeValue> multi_dim_array_declaration assignment_dest object_access
 
 %left PLUS_PLUS MINUS_MINUS '(' ')' '[' ']' '{' '}'
 %left '*' '/' '%'
@@ -68,7 +70,12 @@ global_block
 global_statement
     : function_def
     { 
-        $1->global_statement = true; $1->end_line = true;
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
+    | struct_definition
+    {
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
     | declaration ';'
@@ -86,9 +93,9 @@ global_statement
         $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
-    | struct_definition
+    | multi_dim_array_declaration ';'
     {
-        $1->global_statement = true; $1->end_line = true;
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
     ;
@@ -127,7 +134,9 @@ struct_member_definition
 
 struct_init
     : type IDENTIFIER '=' NEW type
-    { $$ = create_struct_init_node($1, $2); }
+    { $$ = create_struct_init_node($1, $2, $5); }
+    | IDENTIFIER '=' NEW type
+    { $$ = create_struct_init_node(NULL, $1, $4); }
     ;
 
 function_def
@@ -172,6 +181,11 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
+    | assignment ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | declaration_with_assign ';'
     {
         $1->end_line = true;
@@ -182,17 +196,17 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
-    | assignment ';'
-    {
-        $1->end_line = true;
-        $$ = $1;
-    }
     | postfix ';'
     {
         $1->end_line = true;
         $$ = $1;
     }
     | array_declaration ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | multi_dim_array_declaration ';'
     {
         $1->end_line = true;
         $$ = $1;
@@ -214,28 +228,50 @@ postfix
     ;
 
 assignment
-    : IDENTIFIER '=' expression
+    : assignment_dest '=' expression
     { $$ = create_assign_node($1, $3, "="); }
-    | IDENTIFIER PLUS_EQUAL expression
+    | assignment_dest PLUS_EQUAL expression
     { $$ = create_assign_node($1, $3, "+="); }
-    | IDENTIFIER MINUS_EQUAL expression
+    | assignment_dest MINUS_EQUAL expression
     { $$ = create_assign_node($1, $3, "-="); }
-    | IDENTIFIER TIMES_EQUAL expression
+    | assignment_dest TIMES_EQUAL expression
     { $$ = create_assign_node($1, $3, "*="); }
-    | IDENTIFIER DIVIDE_EQUAL expression
+    | assignment_dest DIVIDE_EQUAL expression
     { $$ = create_assign_node($1, $3, "/="); }
-    | IDENTIFIER MODULO_EQUAL expression
+    | assignment_dest MODULO_EQUAL expression
     { $$ = create_assign_node($1, $3, "%="); }
-    | IDENTIFIER RIGHT_SHIFT_EQUAL expression
+    | assignment_dest RIGHT_SHIFT_EQUAL expression
     { $$ = create_assign_node($1, $3, ">>="); }
-    | IDENTIFIER LEFT_SHIFT_EQUAL expression
+    | assignment_dest LEFT_SHIFT_EQUAL expression
     { $$ = create_assign_node($1, $3, "<<="); }
-    | IDENTIFIER AND_EQUAL expression
+    | assignment_dest AND_EQUAL expression
     { $$ = create_assign_node($1, $3, "&="); }
-    | IDENTIFIER OR_EQUAL expression
+    | assignment_dest OR_EQUAL expression
     { $$ = create_assign_node($1, $3, "|="); }
-    | IDENTIFIER XOR_EQUAL expression
+    | assignment_dest XOR_EQUAL expression
     { $$ = create_assign_node($1, $3, "^="); }
+    ;
+
+assignment_dest
+    : array_access
+    { $$ = $1; }
+    | object_access
+    { $$ = $1; }
+    ;
+
+object_access
+    : IDENTIFIER
+    {
+        node_t* object_access_block = create_node(NODE_OBJ_ACCESSOR_BLOCK);
+        node_t* symbol = create_symbol_node($1);
+        add_child_to_parent_block(object_access_block, symbol);
+        $$ = object_access_block;
+    }
+    | object_access '.' IDENTIFIER
+    {
+        node_t* symbol = create_symbol_node($3);
+        $$ = handle_parent_block($1, NODE_OBJ_ACCESSOR_BLOCK, symbol);
+    }
     ;
 
 function_call
@@ -294,6 +330,43 @@ array_declaration
         node->global = true;
         $$ = node;
     }
+    ;
+
+multi_dim_array_declaration
+    : ARRAY IDENTIFIER array_dimensions '=' '{' '}'
+    { $$ = create_multi_dim_array_dec_node($2, $3, NULL); }
+    | ARRAY IDENTIFIER array_dimensions '=' '{' literal_block '}'
+    { $$ = create_multi_dim_array_dec_node($2, $3, $6); }
+    | GLOBAL ARRAY IDENTIFIER array_dimensions '=' '{' '}'
+    {
+        node_t* node = create_multi_dim_array_dec_node($3, $4, NULL);
+        node->global = true;
+        $$ = node;
+    }
+    | GLOBAL ARRAY IDENTIFIER array_dimensions '=' '{' literal_block '}'
+    {
+        node_t* node = create_multi_dim_array_dec_node($3, $4, $7);
+        node->global = true;
+        $$ = node;
+    }
+    | ARRAY IDENTIFIER array_dimensions
+    { $$ = create_multi_dim_array_dec_node($2, $3, NULL); }
+    ;
+
+array_dimensions
+    : array_dimension
+    {
+        node_t* array_dimension_block = create_node(NODE_ARR_DIM_BLOCK);
+        add_child_to_parent_block(array_dimension_block, $1);
+        $$ = array_dimension_block;
+    }
+    | array_dimensions array_dimension
+    { $$ = handle_parent_block($1, NODE_ARR_DIM_BLOCK, $2); }
+    ;
+
+array_dimension
+    : '[' LITERAL_NUM ']'
+    { $$ = create_array_dim_node($2); }
     ;
 
 array_access
@@ -420,9 +493,9 @@ unary_operator
     ;
 %%
 
-void yyerror (char *s) 
+void yyerror (const char *s) 
 {
-   fprintf(stderr, "Error | Line: %d\n%s\n", yylineno, s);
+   fprintf(stderr, "Error in line: %d\n", yylineno);
 
    err_in_parse = true;
 }

@@ -58,6 +58,10 @@ dkms.conf
 y.tab.c
 y.tab.h
 *.yy.c
+pcc_scanner.c
+pcc_parser.h
+pcc_parser.c
+pcc_parser.output
 
 # Test files
 tests/

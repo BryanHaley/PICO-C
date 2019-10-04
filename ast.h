@@ -16,28 +16,34 @@
 typedef enum 
 {
     NODE_GLOBAL_BLOCK,
-    NODE_FUNC_DEF,
-    NODE_FUNC_CALL,
-    NODE_ARG_DEF,
-    NODE_ASSIGN,
-    NODE_DEC,
-    NODE_DEC_W_ASSIGN,
-    NODE_NULL_STMNT,
-    NODE_STMNT_BLOCK,
-    NODE_ARG_DEF_BLOCK,
     NODE_ARG_BLOCK,
-    NODE_PRI,
-    NODE_BIN_EXPR,
-    NODE_PRIMARY,
-    NODE_POSTFIX,
+    NODE_ARG_DEF,
+    NODE_ARG_DEF_BLOCK,
     NODE_ARR_ACCESS,
     NODE_ARR_ACCESSOR,
-    NODE_ARR_MULTI_ACCESSOR,
     NODE_ARR_DEC,
+    NODE_ARR_DIM,
+    NODE_ARR_DIM_BLOCK,
+    NODE_ARR_MULTI_ACCESSOR,
+    NODE_ARR_MULTI_DIM_DEC,
+    NODE_ASSIGN,
+    NODE_ASSIGN_DEST,
+    NODE_BIN_EXPR,
+    NODE_DEC,
+    NODE_DEC_W_ASSIGN,
+    NODE_FUNC_CALL,
+    NODE_FUNC_DEF,
     NODE_LIT_BLOCK,
-    NODE_STRUCT_MEM_BLOCK,
+    NODE_NULL_STMNT,
+    NODE_OBJ_ACCESSOR_BLOCK,
+    NODE_POSTFIX,
+    NODE_PRI,
+    NODE_PRIMARY,
+    NODE_STMNT_BLOCK,
     NODE_STRUCT_DEF,
-    NODE_STRUCT_INIT
+    NODE_STRUCT_INIT,
+    NODE_STRUCT_MEM_BLOCK,
+    NODE_SYMBOL
 } node_type_e;
 
 typedef struct node_t node_t;
@@ -104,7 +110,7 @@ typedef struct
 
 typedef struct 
 {
-    char* identifier;
+    node_t* dest;
     node_t* expr;
     char* op;
 } assign_data;
@@ -176,5 +182,22 @@ typedef struct
     char* type;
     char* identifier;
 } struct_init_data;
+
+typedef struct
+{
+    int num;
+} array_dim_data;
+
+typedef struct
+{
+    char* identifier;
+    node_t* dimensions;
+    node_t* literal_block;
+} array_multidim_dec_data;
+
+typedef struct
+{
+    char* identifier;
+} symbol_data;
 
 #endif

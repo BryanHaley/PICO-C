@@ -1,5 +1,6 @@
 #include <stdlib.h>
-#include "parse.h"
+#include <string.h>
+#include "pcc_grammar.h"
 #include "tree_handler.h"
 
 node_t* create_node(node_type_e node_type)
@@ -47,14 +48,23 @@ node_t* create_node(node_type_e node_type)
         case (NODE_ARR_ACCESSOR):
             node->data = calloc(1, sizeof(array_accessor_data));
             break;
+        case (NODE_ARR_DIM):
+            node->data = calloc(1, sizeof(array_dim_data));
+            break;
         case (NODE_ARR_DEC):
             node->data = calloc(1, sizeof(array_dec_data));
+            break;
+        case (NODE_ARR_MULTI_DIM_DEC):
+            node->data = calloc(1, sizeof(array_multidim_dec_data));
             break;
         case (NODE_STRUCT_DEF):
             node->data = calloc(1, sizeof(struct_def_data));
             break;
         case (NODE_STRUCT_INIT):
             node->data = calloc(1, sizeof(struct_init_data));
+            break;
+        case (NODE_SYMBOL):
+            node->data = calloc(1, sizeof(symbol_data));
             break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
@@ -161,12 +171,12 @@ node_t* create_arg_def_node(char* type, char* identifier)
     return node;
 }
 
-node_t* create_assign_node(char* identifier, node_t* expr, char* op)
+node_t* create_assign_node(node_t* dest, node_t* expr, char* op)
 {
     node_t* node = create_node(NODE_ASSIGN);
     assign_data* data = (assign_data*) node->data;
 
-    data->identifier = identifier;
+    data->dest = dest;
     data->expr = expr;
     data->op = op;
 
@@ -205,6 +215,7 @@ node_t* create_array_access_node(char* identifier, node_t* accessors)
     node_t* node = create_node(NODE_ARR_ACCESS);
     array_access_data* data = (array_access_data*) node->data;
 
+    data->identifier = identifier;
     data->accessors = accessors;
 
     if (accessors != NULL) { accessors->parent = node; }
@@ -214,7 +225,7 @@ node_t* create_array_access_node(char* identifier, node_t* accessors)
 
 node_t* create_array_accessor_node(node_t* expr)
 {
-    node_t* node = create_node(NODE_ARR_ACCESS);
+    node_t* node = create_node(NODE_ARR_ACCESSOR);
     array_accessor_data* data = (array_accessor_data*) node->data;
 
     data->expr = expr;
@@ -372,12 +383,64 @@ node_t* set_expr_unary(node_t* node, char* unary)
     }
 }
 
-node_t* create_struct_init_node(char* type, char* identifier)
+node_t* create_struct_init_node(char* var_type, char* identifier, char* obj_type)
 {
     node_t* node = create_node(NODE_STRUCT_INIT);
     struct_init_data* data = (struct_init_data*) node->data;
 
-    data->type = type;
+    if (var_type == NULL)
+    {
+        var_type = obj_type;
+    }
+
+    else if (strcmp(var_type, obj_type) != 0)
+    {
+        /* error, wrong type */
+        return node;
+    }
+
+    data->type = var_type;
+    data->identifier = identifier;
+
+    return node;
+}
+
+node_t* create_array_dim_node(double num)
+{
+    node_t* node = create_node(NODE_ARR_DIM);
+    array_dim_data* data = (array_dim_data*) node->data;
+
+    if ((int) num != num)
+    {
+        /* error, not an integer */
+        return node;
+    }
+
+    data->num = (int) num;
+
+    return node;
+}
+
+node_t* create_multi_dim_array_dec_node(char* identifier, node_t* dimensions,
+                                        node_t* literal_block)
+{
+    node_t* node = create_node(NODE_ARR_MULTI_DIM_DEC);
+    array_multidim_dec_data* data = (array_multidim_dec_data*) node->data;
+
+    data->identifier = identifier;
+    data->dimensions = dimensions;
+    data->literal_block = literal_block;
+
+    if (literal_block != NULL) { literal_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_symbol_node(char* identifier)
+{
+    node_t* node = create_node(NODE_SYMBOL);
+    symbol_data* data = (symbol_data*) node->data;
+
     data->identifier = identifier;
 
     return node;
