@@ -65,15 +65,14 @@ typedef enum
 {
     PRI_LITERAL_NUM,
     PRI_LITERAL_STR,
-    PRI_IDENTIFIER,
-    PRI_FUNC_CALL,
-    PRI_ARR_ACCESS
+    PRI_LITERAL_BOOL
 } primary_type_e;
 
 typedef union
 {
     double numValue;
     char* strValue;
+    bool boolValue;
     node_t* nodeValue;
 } primary_value;
 

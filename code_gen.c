@@ -219,8 +219,10 @@ void generate_primary(node_t* node)
             fprintf(output_file, "%g", data->val.numValue);
             break;
         case (PRI_LITERAL_STR):
-        case (PRI_IDENTIFIER):
             fprintf(output_file, "%s", data->val.strValue);
+            break;
+        case (PRI_LITERAL_BOOL):
+            fprintf(output_file, "%s", data->val.boolValue ? "true" : "false");
             break;
         default:
             generate_node(data->val.nodeValue);

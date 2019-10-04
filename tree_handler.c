@@ -36,6 +36,7 @@ node_t* create_node(node_type_e node_type)
             break;
         case (NODE_BIN_EXPR):
             node->data = calloc(1, sizeof(bin_expr_data));
+            break;
         case (NODE_NULL_STMNT):
             // no data
             break;
@@ -155,7 +156,7 @@ node_t* create_func_call_node(char* identifier, node_t* arg_block)
     data->identifier = identifier;
     data->arg_block = arg_block;
 
-    if (arg_block->parent != NULL) { arg_block->parent = node; }
+    if (arg_block != NULL) { arg_block->parent = node; }
 
     return node;
 }
@@ -264,37 +265,28 @@ node_t* create_bin_expr_node(node_t* left_node, node_t* right_node, char* op)
     return node;
 }
 
-node_t* create_primary_node_num(primary_type_e val_type, double val)
+node_t* create_primary_node(primary_type_e val_type, void* val)
 {
     node_t* node = create_node(NODE_PRI);
     primary_data* data = (primary_data*) node->data;
 
     data->val_type = val_type;
-    data->val.numValue = val;
 
-    return node;
-}
-
-node_t* create_primary_node_str(primary_type_e val_type, char* val)
-{
-    node_t* node = create_node(NODE_PRI);
-    primary_data* data = (primary_data*) node->data;
-
-    data->val_type = val_type;
-    data->val.strValue = val;
-
-    return node;
-}
-
-node_t* create_primary_node_nde(primary_type_e val_type, node_t* val)
-{
-    node_t* node = create_node(NODE_PRI);
-    primary_data* data = (primary_data*) node->data;
-
-    data->val_type = val_type;
-    data->val.nodeValue = val;
-
-    if (val != NULL) { val->parent = node; }
+    switch (val_type)
+    {
+        case (PRI_LITERAL_NUM):
+            data->val.numValue = *((double*) val);
+            break;
+        case (PRI_LITERAL_STR):
+            data->val.strValue = (char*) val;
+            break;
+        case (PRI_LITERAL_BOOL):
+            data->val.boolValue = *((bool*) val);
+            break;
+        default:
+            /* error, unknown type */
+            return node;
+    }
 
     return node;
 }

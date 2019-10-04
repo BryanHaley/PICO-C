@@ -32,12 +32,13 @@ FILE *yyin;
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
 %type<nodeValue> function_def function_call argument_defintion assignment
-%type<nodeValue> expression primary declaration declaration_with_assign statement argument
+%type<nodeValue> expression declaration declaration_with_assign statement argument
 %type<nodeValue> argument_definition_block statement_block argument_block postfix
 %type<nodeValue> array_declaration literal literal_block struct_init struct_definition
 %type<nodeValue> struct_member_definition_block struct_member_definition array_dimension
 %type<nodeValue> array_access array_accessor array_multi_access array_dimensions
 %type<nodeValue> multi_dim_array_declaration assignment_dest object_access
+%type<nodeValue> relational_expression
 
 %left PLUS_PLUS MINUS_MINUS '(' ')' '[' ']' '{' '}'
 %left '*' '/' '%'
@@ -276,11 +277,7 @@ object_access
 
 function_call
     : IDENTIFIER '(' argument_block ')' 
-    {
-        node_t* node = create_func_call_node($1, $3);
-        node->end_line = true;
-        $$ = node;
-    }
+    { $$ = create_func_call_node($1, $3); }
     ;
 
 argument_block
@@ -441,26 +438,44 @@ expression
     {
         $$ = set_expr_unary($2, $1);
     }
-    | primary
+    | relational_expression
     { $$ = $1; }
-    ;
-
-primary
-    : literal
+    | function_call
+    { $$ = $1; }
+    | array_access
     { $$ = $1; }
     | IDENTIFIER
-    { $$ = create_primary_node_str(PRI_IDENTIFIER, $1); }
-    | function_call
-    { $$ = create_primary_node_nde(PRI_FUNC_CALL, $1); }
-    | array_access
-    { $$ = create_primary_node_nde(PRI_ARR_ACCESS, $1); }
+    { $$ = create_symbol_node($1); }
+    | LITERAL_NUM
+    { $$ = create_primary_node(PRI_LITERAL_NUM, (void*) &$1); }
+    | LITERAL_STRING
+    { $$ = create_primary_node(PRI_LITERAL_STR, (void*) $1); }
+    ;
+
+relational_expression
+    : expression LOGICAL_AND expression
+    { $$ = create_bin_expr_node($1, $3, "and"); }
+    | expression LOGICAL_OR expression
+    { $$ = create_bin_expr_node($1, $3, "or"); }
+    | expression LESS_THAN_OR_EQUAL expression
+    { $$ = create_bin_expr_node($1, $3, "<="); }
+    | expression GREATER_THAN_OR_EQUAL expression
+    { $$ = create_bin_expr_node($1, $3, ">="); }
+    | expression EQUAL_EQUAL expression
+    { $$ = create_bin_expr_node($1, $3, "=="); }
+    | expression NOT_EQUAL expression
+    { $$ = create_bin_expr_node($1, $3, "~="); }
+    | LITERAL_BOOL
+    { $$ = create_primary_node(PRI_LITERAL_BOOL, (void*) &$1); }
     ;
 
 literal
     : LITERAL_NUM
-    { $$ = create_primary_node_num(PRI_LITERAL_NUM, $1); }
+    { $$ = create_primary_node(PRI_LITERAL_NUM, (void*) &$1); }
     | LITERAL_STRING
-    { $$ = create_primary_node_str(PRI_LITERAL_STR, $1); }
+    { $$ = create_primary_node(PRI_LITERAL_STR, (void*) $1); }
+    | LITERAL_BOOL
+    { $$ = create_primary_node(PRI_LITERAL_BOOL, (void*) &$1); }
     ;
 
 literal_block
