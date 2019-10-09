@@ -11,5 +11,7 @@ void yyerror(const char* s);
 
 bool err_in_lex;
 bool err_in_parse;
+bool err_in_tree;
+bool err_in_code_gen;
 
 #endif

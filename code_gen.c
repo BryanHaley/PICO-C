@@ -26,6 +26,22 @@ void generate_code(FILE* out, tree_t* syntax_tree)
     }
 }
 
+void code_gen_error(int line_no, char* err)
+{
+    fprintf(stderr, "\nERROR in line %d: %s\n", line_no, err);
+    err_in_code_gen = true;
+    //remove(output_file);
+    return;
+}
+
+void print_indents()
+{
+    for (int i = 0; i < indent_level; i++)
+    {
+        fprintf(output_file, INDENT_TOKEN);
+    }
+}
+
 void generate_node(node_t* node)
 {
     if (node == NULL) { return; }
@@ -33,10 +49,8 @@ void generate_node(node_t* node)
     if      (node->global_statement) { indent_level = 0; }
     else if (node->increase_indent)  { indent_level++;   }
     
-    if (node->end_line || node->member) for (int i = 0; i < indent_level; i++)
-    {
-        fprintf(output_file, INDENT_TOKEN);
-    }
+    if (node->end_line || node->member) 
+    { print_indents(); }
 
     switch(node->node_type)
     {
@@ -109,12 +123,27 @@ void generate_node(node_t* node)
         case (NODE_SYMBOL):
             generate_symbol(node);
             break;
+        case (NODE_METHOD_CALL):
+            generate_method_call(node);
+            break;
+        case (NODE_IF_STMNT):
+            generate_if_stmnt(node);
+            break;
+        case (NODE_ELSEIF_STMNT):
+            generate_elseif_stmnt(node);
+            break;
+        case (NODE_ELSE_STMNT):
+            generate_else_stmnt(node);
+            break;
+        case (NODE_FOR_LOOP):
+            generate_for_loop(node);
+            break;
         default:
             generate_parent_block(node, NULL);
             break;
     }
 
-    if ((node->end_line || node->member) && node->increase_indent && indent_level > 0)
+    if (node->increase_indent && indent_level > 0)
     { indent_level--; }
 
     if (node->end_line)
@@ -253,7 +282,7 @@ void generate_declaration(node_t* node)
 
     if (strcmp(data->type, "array") == 0)
     {
-        /* error, array must be declared with [] */
+        code_gen_error(line_no, "Array must be declared using brackets [].");
         return;
     }
 
@@ -358,14 +387,14 @@ void generate_array_declaration(node_t* node)
     {
         if (literal_block_children != 1 && literal_block_children != data->size)
         {
-            // error, array initializer must has 1 or n elements
+            code_gen_error(line_no, "Array initializer must have 1 or n elements.");
             return;
         }
     }
 
     else if (data->size > 0 && !has_literal_block)
     {
-        // error, non-empty arrays must have initializer with 1 or n elements
+        code_gen_error(line_no, "Non-empty arrays must have initializer with 1 or n elements.");
         return;
     }
 
@@ -460,4 +489,85 @@ void generate_symbol(node_t* node)
     symbol_data* data = (symbol_data*) node->data;
 
     fprintf(output_file, "%s", data->identifier);
+}
+
+void generate_method_call(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    method_call_data* data = (method_call_data*) node->data;
+
+    generate_node(data->obj_access);
+    fprintf(output_file, ".");
+    generate_node(data->func_call);
+}
+
+void generate_if_stmnt(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    if_stmnt_data* data = (if_stmnt_data*) node->data;
+
+    fprintf(output_file, "if ");
+    generate_node(data->rel_expr);
+    fprintf(output_file, " then\n");
+    generate_node(data->stmnt_block);
+
+    if (data->elseif_block != NULL) { generate_node(data->elseif_block); }
+    if (data->else_stmnt != NULL)   { generate_node(data->else_stmnt); }
+    
+    print_indents();
+    fprintf(output_file, "end");
+}
+
+void generate_elseif_stmnt(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    elseif_stmnt_data* data = (elseif_stmnt_data*) node->data;
+
+    print_indents();
+    fprintf(output_file, "elseif ");
+    generate_node(data->rel_expr);
+    fprintf(output_file, " then\n");
+    generate_node(data->stmnt_block);
+}
+
+void generate_else_stmnt(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    else_stmnt_data* data = (else_stmnt_data*) node->data;
+
+    print_indents();
+    fprintf(output_file, "else\n");
+    generate_node(data->stmnt_block);
+}
+
+void generate_for_loop(node_t* node)
+{
+    /*if (node == NULL) { return; }
+
+    for_loop_data* data = (for_loop_data*) node->data;
+
+    // check for correct types
+
+    if (data->assign_stmnt->node_type != NODE_DEC_W_ASSIGN &&
+        data->assign_stmnt->node_type != NODE_ASSIGN )
+    {
+        
+    }*/
+
+    /* Complex for loops may need to implemented as while loops
+     * I define a complex for loop as a for loop where increment
+     * statement is not a simple ++, --, +=, or -=
+     */
+    
+    /*assign_data* inc_stmnt_data = (assign_data*) data->inc_stmnt->data;
+
+    char* inc_op = inc_stmnt_data->op;
+
+    if (strcmp(inc_op, "+=") != 0 && strcmp(inc_op, "-=") != 0 && )
+
+    fprintf(output_file, "else\n");*/
 }

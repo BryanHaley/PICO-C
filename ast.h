@@ -31,9 +31,15 @@ typedef enum
     NODE_BIN_EXPR,
     NODE_DEC,
     NODE_DEC_W_ASSIGN,
+    NODE_FOR_LOOP,
     NODE_FUNC_CALL,
     NODE_FUNC_DEF,
+    NODE_IF_STMNT,
+    NODE_ELSEIF_STMNT,
+    NODE_ELSE_STMNT,
+    NODE_ELSEIF_BLOCK,
     NODE_LIT_BLOCK,
+    NODE_METHOD_CALL,
     NODE_NULL_STMNT,
     NODE_OBJ_ACCESSOR_BLOCK,
     NODE_POSTFIX,
@@ -55,8 +61,11 @@ struct node_t
     bool end_line;
     bool increase_indent;
     bool global;
-    bool member;
     bool global_statement;
+    bool dont_specify_global;
+    bool member;
+
+    int line_no;
     
     void *data;
 };
@@ -198,5 +207,38 @@ typedef struct
 {
     char* identifier;
 } symbol_data;
+
+typedef struct
+{
+    node_t* obj_access;
+    node_t* func_call;
+} method_call_data;
+
+typedef struct
+{
+    node_t* rel_expr;
+    node_t* stmnt_block;
+    node_t* elseif_block;
+    node_t* else_stmnt;
+} if_stmnt_data;
+
+typedef struct
+{
+    node_t* rel_expr;
+    node_t* stmnt_block;
+} elseif_stmnt_data;
+
+typedef struct
+{
+    node_t* stmnt_block;
+} else_stmnt_data;
+
+typedef struct
+{
+    node_t* assign_stmnt;
+    node_t* rel_expr;
+    node_t* inc_stmnt;
+    node_t* stmnt_block;
+} for_loop_data;
 
 #endif

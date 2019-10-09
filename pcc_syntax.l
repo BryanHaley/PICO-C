@@ -5,6 +5,7 @@ E   ([Ee][+-]?{D}+)
 P   ([Pp][+-]?{D}+)
 FS  (f|F|l|L)
 IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
+WS  [ \t\v\n\f]
 
 %{
 #include <stdio.h>
@@ -19,7 +20,7 @@ IS  ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 %% 
 <<EOF>>                 { return 0; }
 
-[ \t\v\n\f]             { /* consume whitespace */ }
+{WS}                    { /* consume whitespace */ }
 "//"[^\n]*              { /* consume //-comment */ }
 
 var                     { return VAR; }
@@ -55,6 +56,25 @@ LENGTH                  { return LENGTH; }
 new                     { return NEW; }
 New                     { return NEW; }
 NEW                     { return NEW; }
+
+else{WS}+if             { return ELSEIF; }
+Else{WS}+If             { return ELSEIF; }
+Else{WS}+if             { return ELSEIF; }
+else{WS}+If             { return ELSEIF; }
+ELSE{WS}+IF             { return ELSEIF; }
+elseif                  { return ELSEIF; }
+ElseIf                  { return ELSEIF; }
+Elseif                  { return ELSEIF; }
+elseIf                  { return ELSEIF; }
+ELSEIF                  { return ELSEIF; }
+
+if                      { return IF; }
+If                      { return IF; }
+IF                      { return IF; }
+
+else                    { return ELSE; }
+Else                    { return ELSE; }
+ELSE                    { return ELSE; }
 
 true                    { yylval.boolValue = true; return LITERAL_BOOL; }
 True                    { yylval.boolValue = true; return LITERAL_BOOL; }

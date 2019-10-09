@@ -9,6 +9,8 @@
 FILE* output_file;
 int indent_level;
 
+void code_gen_error(int line_no, char* err);
+
 void generate_code(FILE* out, tree_t* syntax_tree);
 void generate_node(node_t* node);
 void generate_parent_block(node_t* parent, char* delim);
@@ -32,5 +34,10 @@ void generate_array_declaration(node_t* node);
 void generate_struct_declaration(node_t* node);
 void generate_struct_initialization(node_t* node);
 void generate_symbol(node_t* node);
+void generate_method_call(node_t* node);
+void generate_if_stmnt(node_t* node);
+void generate_elseif_stmnt(node_t* node);
+void generate_else_stmnt(node_t* node);
+void generate_for_loop(node_t* node);
 
 #endif
