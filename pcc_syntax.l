@@ -76,6 +76,10 @@ else                    { return ELSE; }
 Else                    { return ELSE; }
 ELSE                    { return ELSE; }
 
+for                     { return FOR; }
+For                     { return FOR; }
+FOR                     { return FOR; }
+
 true                    { yylval.boolValue = true; return LITERAL_BOOL; }
 True                    { yylval.boolValue = true; return LITERAL_BOOL; }
 TRUE                    { yylval.boolValue = true; return LITERAL_BOOL; }
@@ -132,9 +136,8 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 "."                     { return('.');  }
 
 .                       { 
-                            printf("Unrecognized token: %s\n", yytext); 
-                            err_in_lex=true; 
-                            yyerror("Error during parsing"); 
+                            fprintf(stderr, "Unrecognized token: %s\n", yytext); 
+                            err_in_lex=true;
                         }
 
 %%

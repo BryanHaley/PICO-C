@@ -36,10 +36,11 @@ FILE *yyin;
 %type<nodeValue> argument_definition_block statement_block argument_block postfix
 %type<nodeValue> array_declaration literal literal_block struct_init struct_definition
 %type<nodeValue> struct_member_definition_block struct_member_definition array_dimension
-%type<nodeValue> array_access array_accessor array_multi_access array_dimensions
+%type<nodeValue> array_access array_accessor array_multi_access array_dimension_block
 %type<nodeValue> multi_dim_array_declaration assignment_dest object_access
-%type<nodeValue> relational_expression method_call statement_opt_braces for_loop
+%type<nodeValue> relational_expression method_call statement_opt_braces 
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
+%type<nodeValue> for_loop for_assign for_inc
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -140,8 +141,22 @@ else_statement
     ;
 
 for_loop
-    : FOR '(' statement ';' relational_expression ';' statement ')' statement_opt_braces
+    : FOR '(' for_assign ';' relational_expression ';' for_inc ')' statement_opt_braces
     { $$ = create_for_loop_node(yylineno, $3, $5, $7, $9); }
+    ;
+
+for_assign
+    : declaration_with_assign
+    { $$ = $1; }
+    | assignment
+    { $$ = $1; }
+    ;
+
+for_inc
+    : assignment
+    { $$ = $1; }
+    | postfix
+    { $$ = $1; }
     ;
 
 /* statement(s) with optional braces */
@@ -407,34 +422,34 @@ array_declaration
     ;
 
 multi_dim_array_declaration
-    : ARRAY IDENTIFIER array_dimensions '=' '{' '}'
+    : ARRAY IDENTIFIER array_dimension_block '=' '{' '}'
     { $$ = create_multi_dim_array_dec_node(yylineno, $2, $3, NULL); }
-    | ARRAY IDENTIFIER array_dimensions '=' '{' literal_block '}'
+    | ARRAY IDENTIFIER array_dimension_block '=' '{' literal_block '}'
     { $$ = create_multi_dim_array_dec_node(yylineno, $2, $3, $6); }
-    | GLOBAL ARRAY IDENTIFIER array_dimensions '=' '{' '}'
+    | GLOBAL ARRAY IDENTIFIER array_dimension_block '=' '{' '}'
     {
         node_t* node = create_multi_dim_array_dec_node(yylineno, $3, $4, NULL);
         node->global = true;
         $$ = node;
     }
-    | GLOBAL ARRAY IDENTIFIER array_dimensions '=' '{' literal_block '}'
+    | GLOBAL ARRAY IDENTIFIER array_dimension_block '=' '{' literal_block '}'
     {
         node_t* node = create_multi_dim_array_dec_node(yylineno, $3, $4, $7);
         node->global = true;
         $$ = node;
     }
-    | ARRAY IDENTIFIER array_dimensions
+    | ARRAY IDENTIFIER array_dimension_block
     { $$ = create_multi_dim_array_dec_node(yylineno, $2, $3, NULL); }
     ;
 
-array_dimensions
+array_dimension_block
     : array_dimension
     {
         node_t* array_dimension_block = create_node(NODE_ARR_DIM_BLOCK, yylineno);
         add_child_to_parent_block(array_dimension_block, $1);
         $$ = array_dimension_block;
     }
-    | array_dimensions array_dimension
+    | array_dimension_block array_dimension
     { $$ = handle_parent_block(yylineno, $1, NODE_ARR_DIM_BLOCK, $2); }
     ;
 
@@ -564,7 +579,7 @@ literal
 literal_block
     : literal
     {
-        node_t* literal_block = create_node(yylineno, NODE_LIT_BLOCK);
+        node_t* literal_block = create_node(NODE_LIT_BLOCK, yylineno);
         add_child_to_parent_block(literal_block, $1);
         $$ = literal_block;
     }
@@ -593,7 +608,7 @@ unary_operator
 
 void yyerror (const char *s) 
 {
-   fprintf(stderr, "Error in line: %d\n", yylineno);
+   fprintf(stderr, "Error parsing line: %d\n", yylineno);
 
    err_in_parse = true;
 }
@@ -614,12 +629,12 @@ int main(int argc, char** argv)
 
     else if (err_in_lex)
     {
-        fprintf(stderr, "Error in lexical analysis. Aborting code generation.\n");
+        fprintf(stderr, "Error while parsing lexical tokens. Aborting code generation.\n");
     }
 
     else if (err_in_parse)
     {
-        fprintf(stderr, "Error in semantic analysis. Aborting code generation.\n");
+        fprintf(stderr, "Error while parsing grammar. Aborting code generation.\n");
     }
 
     else if (err_in_tree)

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "code_gen.h"
 #include "tree_handler.h"
@@ -33,6 +34,23 @@ void code_gen_error(int line_no, char* err)
     err_in_code_gen = true;
     //remove(output_file);
     return;
+}
+
+char* get_unique_identifier_suffix()
+{
+    unique_identifier_suffix_num++;
+
+    char* prefix = "_PCC_VAR_";
+
+    // see for buffer size formula: https://stackoverflow.com/a/10536254
+    size_t buff_size = strlen(prefix)+(3*sizeof(int)+2);
+    char* str_buff = (char*) calloc(buff_size, sizeof(char));
+
+    size_t length = snprintf(str_buff, buff_size, "%s%d", prefix, unique_identifier_suffix_num);
+
+    str_buff = realloc((void*) str_buff, length+1);
+
+    return str_buff;
 }
 
 void print_indents()
@@ -287,7 +305,7 @@ void generate_declaration(node_t* node)
         return;
     }
 
-    if (!node->member)
+    if (!node->member && !node->dont_specify_global)
     {
         if (node->global) { fprintf(output_file, "global "); }
         else              { fprintf(output_file, "local ");  }
@@ -311,7 +329,7 @@ void generate_declaration_with_assign(node_t* node)
 
     declaration_with_assign_data* data = (declaration_with_assign_data*) node->data;
 
-    if (!node->member)
+    if (!node->member && !node->dont_specify_global)
     {
         if (node->global) { fprintf(output_file, "global "); }
         else              { fprintf(output_file, "local ");  }
@@ -379,8 +397,11 @@ void generate_array_declaration(node_t* node)
         }
     }
 
-    if (node->global) { fprintf(output_file, "global "); }
-    else              { fprintf(output_file, "local ");  }
+    if (!node->dont_specify_global)
+    {
+        if (node->global) { fprintf(output_file, "global "); }
+        else              { fprintf(output_file, "local ");  }
+    }
 
     fprintf(output_file, "%s", data->identifier);
 
@@ -474,8 +495,11 @@ void generate_mutli_dim_array_dec(node_t* node)
     parent_block_data* dimensions_data = (parent_block_data*) (data->dimensions->data);
     int num_dimensions = dimensions_data->num_children;
 
-    if (node->global) { fprintf(output_file, "global "); }
-    else              { fprintf(output_file, "local ");  }
+    if (!node->dont_specify_global)
+    {
+        if (node->global) { fprintf(output_file, "global "); }
+        else              { fprintf(output_file, "local ");  }
+    }
 
     // TODO: don't hard-code compiler utility methods
     fprintf(output_file, "%s = _PCC_NEW_MULTI_DIM_ARRAY(%d)", data->identifier, num_dimensions);
@@ -547,28 +571,157 @@ void generate_else_stmnt(node_t* node)
 
 void generate_for_loop(node_t* node)
 {
-    /*if (node == NULL) { return; }
+    if (node == NULL) { return; }
 
     for_loop_data* data = (for_loop_data*) node->data;
+
+    data->assign_stmnt->end_line = false;
+    data->assign_stmnt->increase_indent = false;
+    data->rel_expr->end_line = false;
+    data->rel_expr->increase_indent = false;
+    data->inc_stmnt->end_line = false;
+    data->inc_stmnt->increase_indent = false;
 
     // check for correct types
 
     if (data->assign_stmnt->node_type != NODE_DEC_W_ASSIGN &&
-        data->assign_stmnt->node_type != NODE_ASSIGN )
+        data->assign_stmnt->node_type != NODE_ASSIGN)
     {
-        
-    }*/
+        code_gen_error(node->line_no, "First statement in for loop must be an assignment.");
+    }
+
+    if (data->inc_stmnt->node_type == NODE_DEC_W_ASSIGN)
+    {
+        code_gen_error(node->line_no, "Last statement in for loop cannot declare a variable.");
+    }
+
+    else if (data->inc_stmnt->node_type != NODE_ASSIGN && data->inc_stmnt->node_type != NODE_POSTFIX)
+    {
+        code_gen_error(node->line_no, "Last statement in for loop must be an assignment or postfix statement.");
+    }
 
     /* Complex for loops may need to implemented as while loops
      * I define a complex for loop as a for loop where increment
-     * statement is not a simple ++, --, +=, or -=
+     * statement is not a simple ++, --, +=, or -=, or where
+     * the relational expression does not take the form of
+     * i < n.
      */
-    
-    /*assign_data* inc_stmnt_data = (assign_data*) data->inc_stmnt->data;
+    bool implement_as_while;
 
-    char* inc_op = inc_stmnt_data->op;
+    if (data->inc_stmnt->node_type == NODE_ASSIGN)
+    {
+        assign_data* inc_stmnt_data = (assign_data*) data->inc_stmnt->data;
+        char* assign_op = inc_stmnt_data->op;
 
-    if (strcmp(inc_op, "+=") != 0 && strcmp(inc_op, "-=") != 0 && )
+        if (strcmp(assign_op, "+=") != 0 && strcmp(assign_op, "-=") != 0)
+        {
+            implement_as_while = true;
+        }
+    }
 
-    fprintf(output_file, "else\n");*/
+    /* implement as for loop */
+    if (!implement_as_while)
+    {
+        bin_expr_data* rel_expr_data = (bin_expr_data*) data->rel_expr->data;
+        data->assign_stmnt->dont_specify_global = true;
+
+        fprintf(output_file, "for ");
+        generate_node(data->assign_stmnt);
+        fprintf(output_file, ", ");
+        generate_node(rel_expr_data->right_node);
+
+        if (data->inc_stmnt->node_type == NODE_POSTFIX)
+        {
+            postfix_data* inc_stmnt_data = (postfix_data*) data->inc_stmnt->data;
+
+            if (strcmp(inc_stmnt_data->op, "--") == 0)
+            {
+                fprintf(output_file, ", -1");
+            }
+
+            /*else if (strcmp(inc_stmnt_data->op, "++") == 0)
+            {
+                fprintf(output_file, "1");
+            }*/
+
+            else if (strcmp(inc_stmnt_data->op, "++") != 0)
+            {
+                code_gen_error(node->line_no, "Invalid postfix op used in for loop incrementor.");
+                return;
+            }
+        }
+
+        else if (data->inc_stmnt->node_type == NODE_ASSIGN)
+        {
+            assign_data* inc_stmnt_data = (assign_data*) data->inc_stmnt->data;
+
+            if (strcmp(inc_stmnt_data->op, "+=") == 0)
+            {
+                fprintf(output_file, ", ");
+                generate_node(inc_stmnt_data->expr);
+            }
+
+            else if (strcmp(inc_stmnt_data->op, "-=") == 0)
+            {
+                fprintf(output_file, ", -(");
+                generate_node(inc_stmnt_data->expr);
+                fprintf(output_file, ")");
+            }
+
+            else
+            {
+                code_gen_error(node->line_no, "Invalid assignment op used in for loop incrementor.");
+                return;
+            }
+        }
+
+        fprintf(output_file, " do\n");
+        generate_node(data->stmnt_block);
+        
+        print_indents();
+        fprintf(output_file, "end");
+    }
+
+    /* implement as while loop */
+    else
+    {
+        data->inc_stmnt->end_line = true;
+        data->inc_stmnt->increase_indent = true;
+
+        if (data->assign_stmnt->node_type == NODE_DEC_W_ASSIGN)
+        {
+            /* Note: this isn't going to work properly until symbols are properly
+             * implemented. */
+            /*data->assign_stmnt->global = false;
+            data->assign_stmnt->dont_specify_global = false;
+
+            declaration_with_assign_data* assign_stmnt_data =
+                (declaration_with_assign_data*) data->assign_stmnt->data;
+
+            char* unique_identifier_suffix = get_unique_identifier_suffix();
+            
+            strcat(assign_stmnt_data->identifier, unique_identifier_suffix);*/
+
+            generate_node(data->assign_stmnt);
+        }
+        
+        else
+        {
+            generate_node(data->assign_stmnt);
+        }
+
+        fprintf(output_file, "\n");
+        print_indents();
+        fprintf(output_file, "while ");
+        generate_node(data->rel_expr);
+        fprintf(output_file, " do\n");
+
+        generate_node(data->stmnt_block);
+
+        print_indents();
+        fprintf(output_file, "-- PCC: increment for loop --\n");
+        generate_node(data->inc_stmnt);
+        print_indents();
+        fprintf(output_file, "end");
+    }
 }

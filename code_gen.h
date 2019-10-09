@@ -8,8 +8,10 @@
 
 FILE* output_file;
 int indent_level;
+int unique_identifier_suffix_num;
 
 void code_gen_error(int line_no, char* err);
+char* get_unique_identifier_suffix();
 
 void generate_code(FILE* out, tree_t* syntax_tree);
 void generate_node(node_t* node);
