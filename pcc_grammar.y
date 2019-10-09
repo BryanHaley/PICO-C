@@ -509,11 +509,11 @@ expression
     { $$ = create_bin_expr_node(yylineno, $1, $3, "^"); }
     | '(' expression ')'
     { 
-        $$ = set_expr_paren($2);
+        $$ = set_expr_paren(yylineno, $2);
     }
     | unary_operator expression %prec UNARY
     {
-        $$ = set_expr_unary($2, $1);
+        $$ = set_expr_unary(yylineno, $2, $1);
     }
     | relational_expression
     { $$ = $1; }

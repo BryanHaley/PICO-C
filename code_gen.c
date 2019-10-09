@@ -2,6 +2,7 @@
 #include <string.h>
 #include "code_gen.h"
 #include "tree_handler.h"
+#include "pcc_grammar.h"
 #include "ast.h"
 
 void generate_code(FILE* out, tree_t* syntax_tree)
@@ -282,7 +283,7 @@ void generate_declaration(node_t* node)
 
     if (strcmp(data->type, "array") == 0)
     {
-        code_gen_error(line_no, "Array must be declared using brackets [].");
+        code_gen_error(node->line_no, "Array must be declared using brackets [].");
         return;
     }
 
@@ -387,14 +388,14 @@ void generate_array_declaration(node_t* node)
     {
         if (literal_block_children != 1 && literal_block_children != data->size)
         {
-            code_gen_error(line_no, "Array initializer must have 1 or n elements.");
+            code_gen_error(node->line_no, "Array initializer must have 1 or n elements.");
             return;
         }
     }
 
     else if (data->size > 0 && !has_literal_block)
     {
-        code_gen_error(line_no, "Non-empty arrays must have initializer with 1 or n elements.");
+        code_gen_error(node->line_no, "Non-empty arrays must have initializer with 1 or n elements.");
         return;
     }
 

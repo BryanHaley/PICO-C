@@ -40,8 +40,8 @@ node_t* create_primary_node(int line_no, primary_type_e val_type, void* val);
 node_t* create_postfix_node(int line_no, char* identifier, char* op);
 
 node_t* handle_parent_block(int line_no, node_t* parent, node_type_e parent_type, node_t* child);
-node_t* set_expr_paren(node_t* node);
-node_t* set_expr_unary(node_t* node, char* unary);
+node_t* set_expr_paren(int line_no, node_t* node);
+node_t* set_expr_unary(int line_no, node_t* node, char* unary);
 
 void tree_handle_error(int line_no, char* err);
 

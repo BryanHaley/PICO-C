@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "pcc_grammar.h"
@@ -497,7 +498,7 @@ node_t* handle_parent_block(int line_no, node_t* parent, node_type_e parent_type
     return parent;
 }
 
-node_t* set_expr_paren(node_t* node)
+node_t* set_expr_paren(int line_no, node_t* node)
 {
     if (node->node_type == NODE_BIN_EXPR)
     {
@@ -519,7 +520,7 @@ node_t* set_expr_paren(node_t* node)
         return NULL;
     }
 }
-node_t* set_expr_unary(node_t* node, char* unary)
+node_t* set_expr_unary(int line_no, node_t* node, char* unary)
 {
     if (node->node_type == NODE_BIN_EXPR)
     {
