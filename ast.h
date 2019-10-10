@@ -32,12 +32,16 @@ typedef enum
     NODE_DEC,
     NODE_DEC_W_ASSIGN,
     NODE_FOR_LOOP,
+    NODE_DO_WHILE_LOOP,
+    NODE_WHILE_LOOP,
     NODE_FUNC_CALL,
     NODE_FUNC_DEF,
+    NODE_GOTO,
     NODE_IF_STMNT,
     NODE_ELSEIF_STMNT,
     NODE_ELSE_STMNT,
     NODE_ELSEIF_BLOCK,
+    NODE_LABELMAKER,
     NODE_LIT_BLOCK,
     NODE_METHOD_CALL,
     NODE_NULL_STMNT,
@@ -235,10 +239,32 @@ typedef struct
 
 typedef struct
 {
+    node_t* rel_expr;
+    node_t* stmnt_block;
+} while_loop_data;
+
+typedef struct
+{
+    node_t* rel_expr;
+    node_t* stmnt_block;
+} do_while_loop_data;
+
+typedef struct
+{
     node_t* assign_stmnt;
     node_t* rel_expr;
     node_t* inc_stmnt;
     node_t* stmnt_block;
 } for_loop_data;
+
+typedef struct
+{
+    char* identifier;
+} labelmaker_data;
+
+typedef struct
+{
+    char* identifier;
+} goto_statement_data;
 
 #endif

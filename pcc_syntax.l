@@ -26,21 +26,25 @@ WS  [ \t\v\n\f]
 var                     { return VAR; }
 Var                     { return VAR; }
 VAR                     { return VAR; }
+
 string                  { return STRING; }
 String                  { return STRING; }
 STRING                  { return STRING; }
+
 bool                    { return BOOL; }
 Bool                    { return BOOL; }
 BOOL                    { return BOOL; }
 boolean                 { return BOOL; }
 Boolean                 { return BOOL; }
 BOOLEAN                 { return BOOL; }
+
 array                   { return ARRAY; }
 Array                   { return ARRAY; }
 ARRAY                   { return ARRAY; }
 arr                     { return ARRAY; }
 Arr                     { return ARRAY; }
 ARR                     { return ARRAY; }
+
 struct                  { return STRUCT; }
 Struct                  { return STRUCT; }
 STRUCT                  { return STRUCT; }
@@ -76,13 +80,26 @@ else                    { return ELSE; }
 Else                    { return ELSE; }
 ELSE                    { return ELSE; }
 
+goto                    { return GOTO; }
+Goto                    { return GOTO; }
+GOTO                    { return GOTO; }
+
 for                     { return FOR; }
 For                     { return FOR; }
 FOR                     { return FOR; }
 
+do                      { return DO; }
+Do                      { return DO; }
+DO                      { return DO; }
+
+while                   { return WHILE; }
+While                   { return WHILE; }
+WHILE                   { return WHILE; }
+
 true                    { yylval.boolValue = true; return LITERAL_BOOL; }
 True                    { yylval.boolValue = true; return LITERAL_BOOL; }
 TRUE                    { yylval.boolValue = true; return LITERAL_BOOL; }
+
 false                   { yylval.boolValue = false; return LITERAL_BOOL; }
 False                   { yylval.boolValue = false; return LITERAL_BOOL; }
 FALSE                   { yylval.boolValue = false; return LITERAL_BOOL; }
@@ -134,6 +151,7 @@ L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_ST
 "["                     { return('[');  }
 "]"                     { return(']');  }
 "."                     { return('.');  }
+":"                     { return(':');  }
 
 .                       { 
                             fprintf(stderr, "Unrecognized token: %s\n", yytext); 

@@ -22,8 +22,8 @@ FILE *yyin;
 }
 
 %token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
-%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL
-%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL
+%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE
+%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR
 %token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP
@@ -38,9 +38,9 @@ FILE *yyin;
 %type<nodeValue> struct_member_definition_block struct_member_definition array_dimension
 %type<nodeValue> array_access array_accessor array_multi_access array_dimension_block
 %type<nodeValue> multi_dim_array_declaration assignment_dest object_access
-%type<nodeValue> relational_expression method_call statement_opt_braces 
+%type<nodeValue> relational_expression method_call statement_opt_braces goto_statement
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
-%type<nodeValue> for_loop for_assign for_inc
+%type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -138,6 +138,19 @@ elseif_statement
 else_statement
     : ELSE statement_opt_braces
     { $$ = create_else_statement_node(yylineno, $2); }
+    ;
+
+while_loop
+    : WHILE '(' relational_expression ')' statement_opt_braces
+    { $$ = create_while_loop_node(yylineno, $3, $5); }
+    ;
+
+do_while_loop
+    : DO '{' statement_block '}' WHILE '(' relational_expression ')'
+    {
+        $3->increase_indent = true;
+        $$ = create_do_while_loop_node(yylineno, $3, $7);
+    }
     ;
 
 for_loop
@@ -304,8 +317,38 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
+    | do_while_loop ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | while_loop
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | label_maker
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | goto_statement ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | ';'
     { $$ = NULL; }
+    ;
+
+label_maker
+    : IDENTIFIER ':'
+    { $$ = create_labelmaker_node(yylineno, $1); }
+    ;
+
+goto_statement
+    : GOTO IDENTIFIER
+    { $$ = create_goto_statement_node(yylineno, $2); }
     ;
 
 postfix

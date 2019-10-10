@@ -84,6 +84,18 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_FOR_LOOP):
             node->data = calloc(1, sizeof(for_loop_data));
             break;
+        case (NODE_DO_WHILE_LOOP):
+            node->data = calloc(1, sizeof(do_while_loop_data));
+            break;
+        case (NODE_WHILE_LOOP):
+            node->data = calloc(1, sizeof(while_loop_data));
+            break;
+        case (NODE_LABELMAKER):
+            node->data = calloc(1, sizeof(labelmaker_data));
+            break;
+        case (NODE_GOTO):
+            node->data = calloc(1, sizeof(goto_statement_data));
+            break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
             break;
@@ -478,6 +490,54 @@ node_t* create_for_loop_node(int line_no, node_t* assign_stmnt, node_t* rel_expr
     if (rel_expr != NULL)     { rel_expr->parent = node; }
     if (inc_stmnt != NULL)    { inc_stmnt->parent = node; }
     if (stmnt_block != NULL)  { stmnt_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_while_loop_node(int line_no, node_t* rel_expr, node_t* stmnt_block)
+{
+    node_t* node = create_node(NODE_WHILE_LOOP, line_no);
+    while_loop_data* data = (while_loop_data*) node->data;
+
+    data->rel_expr     = rel_expr;
+    data->stmnt_block  = stmnt_block;
+
+    if (rel_expr != NULL)     { rel_expr->parent = node; }
+    if (stmnt_block != NULL)  { stmnt_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_do_while_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr)
+{
+    node_t* node = create_node(NODE_DO_WHILE_LOOP, line_no);
+    do_while_loop_data* data = (do_while_loop_data*) node->data;
+
+    data->rel_expr     = rel_expr;
+    data->stmnt_block  = stmnt_block;
+
+    if (rel_expr != NULL)     { rel_expr->parent = node; }
+    if (stmnt_block != NULL)  { stmnt_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_labelmaker_node(int line_no, char* identifier)
+{
+    node_t* node = create_node(NODE_LABELMAKER, line_no);
+    labelmaker_data* data = (labelmaker_data*) node->data;
+
+    data->identifier = identifier;
+
+    return node;
+}
+
+node_t* create_goto_statement_node(int line_no, char* identifier)
+{
+    node_t* node = create_node(NODE_GOTO, line_no);
+    goto_statement_data* data = (goto_statement_data*) node->data;
+
+    data->identifier = identifier;
 
     return node;
 }

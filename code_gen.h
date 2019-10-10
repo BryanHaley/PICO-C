@@ -41,5 +41,9 @@ void generate_if_stmnt(node_t* node);
 void generate_elseif_stmnt(node_t* node);
 void generate_else_stmnt(node_t* node);
 void generate_for_loop(node_t* node);
+void generate_while_loop(node_t* node);
+void generate_do_while_loop(node_t* node);
+void generate_labelmaker(node_t* node);
+void generate_goto_statement(node_t* node);
 
 #endif

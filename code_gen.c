@@ -157,6 +157,18 @@ void generate_node(node_t* node)
         case (NODE_FOR_LOOP):
             generate_for_loop(node);
             break;
+        case (NODE_WHILE_LOOP):
+            generate_while_loop(node);
+            break;
+        case (NODE_DO_WHILE_LOOP):
+            generate_do_while_loop(node);
+            break;
+        case (NODE_LABELMAKER):
+            generate_labelmaker(node);
+            break;
+        case (NODE_GOTO):
+            generate_goto_statement(node);
+            break;
         default:
             generate_parent_block(node, NULL);
             break;
@@ -724,4 +736,60 @@ void generate_for_loop(node_t* node)
         print_indents();
         fprintf(output_file, "end");
     }
+}
+
+void generate_while_loop(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    while_loop_data* data = (while_loop_data*) node->data;
+
+    data->rel_expr->end_line = false;
+    data->rel_expr->increase_indent = false;
+
+    fprintf(output_file, "while ");
+    generate_node(data->rel_expr);
+    fprintf(output_file, " do\n");
+
+    generate_node(data->stmnt_block);
+
+    print_indents();
+    fprintf(output_file, "end");
+}
+
+void generate_do_while_loop(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    while_loop_data* data = (while_loop_data*) node->data;
+
+    data->rel_expr->end_line = false;
+    data->rel_expr->increase_indent = false;
+
+    fprintf(output_file, "repeat\n");
+
+    generate_node(data->stmnt_block);
+
+    print_indents();
+    fprintf(output_file, "until not (");
+    generate_node(data->rel_expr);
+    fprintf(output_file, ")");
+}
+
+void generate_labelmaker(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    labelmaker_data* data = (labelmaker_data*) node->data;
+
+    fprintf(output_file, "::%s::", data->identifier);
+}
+
+void generate_goto_statement(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    goto_statement_data* data = (goto_statement_data*) node->data;
+
+    fprintf(output_file, "goto %s", data->identifier);
 }
