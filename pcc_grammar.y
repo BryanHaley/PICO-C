@@ -24,23 +24,24 @@ FILE *yyin;
 %token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
 %token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO
-%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR
-%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR
-%token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP
+%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
+%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK
+%token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP UNTIL
 
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
-%type<nodeValue> function_def function_call argument_defintion assignment
+%type<nodeValue> function_def function_call argument_defintion assignment break_statement
 %type<nodeValue> expression declaration declaration_with_assign statement argument
 %type<nodeValue> argument_definition_block statement_block argument_block postfix
 %type<nodeValue> array_declaration literal literal_block struct_init struct_definition
 %type<nodeValue> struct_member_definition_block struct_member_definition array_dimension
 %type<nodeValue> array_access array_accessor array_multi_access array_dimension_block
-%type<nodeValue> multi_dim_array_declaration assignment_dest object_access
+%type<nodeValue> multi_dim_array_declaration assignment_dest object_access do_until_loop
 %type<nodeValue> relational_expression method_call statement_opt_braces goto_statement
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
 %type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
+%type<nodeValue> return_statement
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -150,6 +151,14 @@ do_while_loop
     {
         $3->increase_indent = true;
         $$ = create_do_while_loop_node(yylineno, $3, $7);
+    }
+    ;
+
+do_until_loop
+    : DO '{' statement_block '}' UNTIL '(' relational_expression ')'
+    {
+        $3->increase_indent = true;
+        $$ = create_do_until_loop_node(yylineno, $3, $7);
     }
     ;
 
@@ -322,6 +331,11 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
+    | do_until_loop ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | while_loop
     {
         $1->end_line = true;
@@ -333,6 +347,16 @@ statement
         $$ = $1;
     }
     | goto_statement ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | break_statement ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | return_statement ';'
     {
         $1->end_line = true;
         $$ = $1;
@@ -349,6 +373,18 @@ label_maker
 goto_statement
     : GOTO IDENTIFIER
     { $$ = create_goto_statement_node(yylineno, $2); }
+    ;
+
+break_statement
+    : BREAK
+    { $$ = create_break_statement_node(yylineno); }
+    ;
+
+return_statement
+    : RETURN expression
+    { $$ = create_return_statement_node(yylineno, $2); }
+    | RETURN
+    { $$ = create_return_statement_node(yylineno, NULL); }
     ;
 
 postfix

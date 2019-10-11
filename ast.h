@@ -29,9 +29,11 @@ typedef enum
     NODE_ASSIGN,
     NODE_ASSIGN_DEST,
     NODE_BIN_EXPR,
+    NODE_BREAK,
     NODE_DEC,
     NODE_DEC_W_ASSIGN,
     NODE_FOR_LOOP,
+    NODE_DO_UNTIL_LOOP,
     NODE_DO_WHILE_LOOP,
     NODE_WHILE_LOOP,
     NODE_FUNC_CALL,
@@ -46,6 +48,7 @@ typedef enum
     NODE_METHOD_CALL,
     NODE_NULL_STMNT,
     NODE_OBJ_ACCESSOR_BLOCK,
+    NODE_RETURN,
     NODE_POSTFIX,
     NODE_PRI,
     NODE_PRIMARY,
@@ -251,6 +254,12 @@ typedef struct
 
 typedef struct
 {
+    node_t* rel_expr;
+    node_t* stmnt_block;
+} do_until_loop_data;
+
+typedef struct
+{
     node_t* assign_stmnt;
     node_t* rel_expr;
     node_t* inc_stmnt;
@@ -266,5 +275,10 @@ typedef struct
 {
     char* identifier;
 } goto_statement_data;
+
+typedef struct
+{
+    node_t* expr;
+} return_statement_data;
 
 #endif

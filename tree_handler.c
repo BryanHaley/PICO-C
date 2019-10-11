@@ -96,6 +96,9 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_GOTO):
             node->data = calloc(1, sizeof(goto_statement_data));
             break;
+        case (NODE_BREAK):
+            node->data = NULL;
+            break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
             break;
@@ -522,6 +525,20 @@ node_t* create_do_while_loop_node(int line_no, node_t* stmnt_block, node_t* rel_
     return node;
 }
 
+node_t* create_do_until_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr)
+{
+    node_t* node = create_node(NODE_DO_UNTIL_LOOP, line_no);
+    do_until_loop_data* data = (do_until_loop_data*) node->data;
+
+    data->rel_expr     = rel_expr;
+    data->stmnt_block  = stmnt_block;
+
+    if (rel_expr != NULL)     { rel_expr->parent = node; }
+    if (stmnt_block != NULL)  { stmnt_block->parent = node; }
+
+    return node;
+}
+
 node_t* create_labelmaker_node(int line_no, char* identifier)
 {
     node_t* node = create_node(NODE_LABELMAKER, line_no);
@@ -538,6 +555,24 @@ node_t* create_goto_statement_node(int line_no, char* identifier)
     goto_statement_data* data = (goto_statement_data*) node->data;
 
     data->identifier = identifier;
+
+    return node;
+}
+
+node_t* create_break_statement_node(int line_no)
+{
+    node_t* node = create_node(NODE_BREAK, line_no);
+    return node;
+}
+
+node_t* create_return_statement_node(int line_no, node_t* expr)
+{
+    node_t* node = create_node(NODE_RETURN, line_no);
+    return_statement_data* data = (return_statement_data*) node->data;
+
+    data->expr = expr;
+
+    if (expr != NULL)     { expr->parent = node; }
 
     return node;
 }

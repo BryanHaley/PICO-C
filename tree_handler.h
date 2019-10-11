@@ -36,9 +36,13 @@ node_t* create_else_statement_node(int line_no, node_t* stmnt_block);
 node_t* create_for_loop_node(int line_no, node_t* assign_stmnt, node_t* rel_expr, node_t* inc_stmnt, node_t* stmnt_block);
 node_t* create_while_loop_node(int line_no, node_t* rel_expr, node_t* stmnt_block);
 node_t* create_do_while_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr);
+node_t* create_do_until_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr);
 
 node_t* create_labelmaker_node(int line_no, char* identifier);
 node_t* create_goto_statement_node(int line_no, char* identifier);
+node_t* create_break_statement_node(int line_no);
+
+node_t* create_return_statement_node(int line_no, node_t* expr);
 
 node_t* create_bin_expr_node(int line_no, node_t* left_node, node_t* right_node, char* op);
 node_t* create_primary_node(int line_no, primary_type_e val_type, void* val);

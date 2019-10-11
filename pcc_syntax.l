@@ -96,6 +96,18 @@ while                   { return WHILE; }
 While                   { return WHILE; }
 WHILE                   { return WHILE; }
 
+until                   { return UNTIL; }
+Until                   { return UNTIL; }
+UNTIL                   { return UNTIL; }
+
+break                   { return BREAK; }
+Break                   { return BREAK; }
+BREAK                   { return BREAK; }
+
+return                  { return RETURN; }
+Return                  { return RETURN; }
+RETURN                  { return RETURN; }
+
 true                    { yylval.boolValue = true; return LITERAL_BOOL; }
 True                    { yylval.boolValue = true; return LITERAL_BOOL; }
 TRUE                    { yylval.boolValue = true; return LITERAL_BOOL; }
