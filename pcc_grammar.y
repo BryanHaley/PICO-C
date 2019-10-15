@@ -23,10 +23,10 @@ FILE *yyin;
 }
 
 %token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
-%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE
+%token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE SWITCH 
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
-%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK
+%token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
 %token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP UNTIL
 
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
@@ -42,7 +42,7 @@ FILE *yyin;
 %type<nodeValue> relational_expression method_call statement_opt_braces goto_statement
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
 %type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
-%type<nodeValue> return_statement continue_statement
+%type<nodeValue> return_statement continue_statement switch_statement case_block case
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -367,6 +367,11 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
+    | switch_statement
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | ';'
     { $$ = NULL; }
     ;
@@ -396,6 +401,30 @@ return_statement
     { $$ = create_return_statement_node(yylineno, $2); }
     | RETURN
     { $$ = create_return_statement_node(yylineno, NULL); }
+    ;
+
+switch_statement
+    : SWITCH '(' expression ')' '{' case_block '}'
+    { $$ = create_switch_statement_node(yylineno, $3, $6); }
+    ;
+
+case_block
+    : case
+    {
+        node_t* case_block = create_node(NODE_CASE_BLOCK, yylineno);
+        add_child_to_parent_block(case_block, $1);
+        $$ = case_block;
+    }
+    | case_block case
+    { $$ = handle_parent_block(yylineno, $1, NODE_CASE_BLOCK, $2); }
+    ;
+
+case
+    : CASE '(' expression ')' ':' statement_block
+    {
+        $6->increase_indent = true;
+        $$ = create_case_node(yylineno, $3, $6);
+    }
     ;
 
 postfix

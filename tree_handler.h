@@ -38,6 +38,9 @@ node_t* create_while_loop_node(int line_no, node_t* rel_expr, node_t* stmnt_bloc
 node_t* create_do_while_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr);
 node_t* create_do_until_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr);
 
+node_t* create_switch_statement_node(int line_no, node_t* expr, node_t* case_block);
+node_t* create_case_node(int line_no, node_t* expr, node_t* stmnt_block);
+
 node_t* create_labelmaker_node(int line_no, char* identifier);
 node_t* create_goto_statement_node(int line_no, char* identifier);
 node_t* create_break_statement_node(int line_no);

@@ -102,6 +102,12 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_BREAK):
             node->data = NULL;
             break;
+        case (NODE_SWITCH):
+            node->data = calloc(1, sizeof(switch_statement_data));
+            break;
+        case (NODE_CASE):
+            node->data = calloc(1, sizeof(case_data));
+            break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
             break;
@@ -581,7 +587,35 @@ node_t* create_return_statement_node(int line_no, node_t* expr)
 
     data->expr = expr;
 
-    if (expr != NULL)     { expr->parent = node; }
+    if (expr != NULL) { expr->parent = node; }
+
+    return node;
+}
+
+node_t* create_switch_statement_node(int line_no, node_t* expr, node_t* case_block)
+{
+    node_t* node = create_node(NODE_SWITCH, line_no);
+    switch_statement_data* data = (switch_statement_data*) node->data;
+
+    data->expr       = expr;
+    data->case_block = case_block;
+
+    if (expr != NULL)       { expr->parent = node; }
+    if (case_block != NULL) { case_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_case_node(int line_no, node_t* expr, node_t* stmnt_block)
+{
+    node_t* node = create_node(NODE_CASE, line_no);
+    case_data* data = (case_data*) node->data;
+
+    data->expr        = expr;
+    data->stmnt_block = stmnt_block;
+
+    if (expr != NULL)        { expr->parent = node; }
+    if (stmnt_block != NULL) { stmnt_block->parent = node; }
 
     return node;
 }

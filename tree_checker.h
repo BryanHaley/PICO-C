@@ -38,5 +38,7 @@ void check_goto_statement(node_t* node);
 void check_break_statement(node_t* node);
 void check_return_statement(node_t* node);
 void check_continue_statement(node_t* node);
+void check_switch_statement(node_t* node);
+void check_case(node_t* node);
 
 #endif

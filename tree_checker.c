@@ -114,6 +114,12 @@ void check_node(node_t* node)
         case (NODE_CONTINUE):
             check_continue_statement(node);
             break;
+        case (NODE_SWITCH):
+            check_switch_statement(node);
+            break;
+        case (NODE_CASE):
+            check_case(node);
+            break;
         default:
             check_parent_block(node);
             break;
@@ -468,7 +474,7 @@ void check_continue_statement(node_t* node)
      * outside and above the loop so that the condition check happens.
      */
 
-    // First step is to find the closest applicable loop node by following parents
+    // Find the closest applicable loop node by following parents
     node_t* loop = NULL;
     node_t* current = node;
 
@@ -477,10 +483,44 @@ void check_continue_statement(node_t* node)
         current = current->parent;
         if (current == NULL || current == syntax_tree->global_block) { break; }
 
-        if (current->node_type == NODE_FOR_LOOP || current->node_type == NODE_WHILE_LOOP ||
+        /*if (current->node_type == NODE_FOR_LOOP || current->node_type == NODE_WHILE_LOOP ||
             current->node_type == NODE_DO_WHILE_LOOP || current->node_type == NODE_DO_UNTIL_LOOP)
         {
             loop = current;
+            loop->continue_statement = node;
+            break;
+        }*/
+
+        if (current->node_type == NODE_FOR_LOOP)
+        {
+            loop = current;
+            for_loop_data* loop_data = (for_loop_data*) node->data;
+            loop_data->continue_statement = node;
+            break;
+        }
+
+        else if (current->node_type == NODE_WHILE_LOOP)
+        {
+            loop = current;
+            while_loop_data* loop_data = (while_loop_data*) node->data;
+            loop_data->continue_statement = node;
+            break;
+        }
+
+        else if (current->node_type == NODE_DO_WHILE_LOOP)
+        {
+            loop = current;
+            do_while_loop_data* loop_data = (do_while_loop_data*) node->data;
+            loop_data->continue_statement = node;
+            break;
+        }
+
+        else if (current->node_type == NODE_DO_UNTIL_LOOP)
+        {
+            loop = current;
+            do_until_loop_data* loop_data = (do_until_loop_data*) node->data;
+            loop_data->continue_statement = node;
+            break;
         }
     }
 
@@ -490,17 +530,84 @@ void check_continue_statement(node_t* node)
         return;
     }
 
-    /* Instead of doing the potentially complex operation of inserting a label maker
-     * statement into an arbitrary point of the syntax tree, I opted to simply add a
-     * continue node pointer to the node data structure. Just let it be handled in code gen. 
-     * This increases repeated code but is less error-prone, as we'd have to handle a
-     * lot of edge cases here and future changes to the language might require this
-     * function to change too.
-     */
-
-    loop->continue_statement = node;
+    // Create a unique identifier for the continue label. This will be used to generate
+    // unique "goto" statements
     continue_statement_data* continue_data = (continue_statement_data*) node->data;
-
-    // create a unique identifier for the continue label
     continue_data->identifier = get_unique_name_with_prefix("_PCC_CONTINUE_");
+}
+
+void check_switch_statement(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    switch_statement_data* data = (switch_statement_data*) node->data;
+    
+    // Need to generate label maker node for use with break statements inside switch
+    // Do this BEFORE checking the case_block
+    data->break_statement_label = create_labelmaker_node(node->line_no, get_unique_name_with_prefix("_PCC_SWITCH_BREAK_"));
+
+    if (data->expr != NULL)       { check_node(data->expr); }
+    if (data->case_block != NULL) { check_node(data->case_block); }
+
+    /* TODO: find result type of expression. Needs to be either number or string */
+}
+
+void check_case(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    case_data* data = (case_data*) node->data;
+
+    if (data->expr != NULL)        { check_node(data->expr); }
+    if (data->stmnt_block != NULL) { check_node(data->stmnt_block); }
+
+    // switch node should always be the parent of the parent of a case node
+    node_t* switch_node = node->parent->parent;
+
+    if (switch_node == NULL)
+    {
+        tree_handle_error(node->line_no, "Could not find switch statement parent of case.");
+        return;
+    }
+
+    // Since switch-case isn't natively supported by Lua, we can't simply generate
+    // 1:1 break statements. Thus, we need to find any break statements used inside the
+    // case statement block and change them to goto statements that lead to the switch's
+    // break_statement_label
+
+    switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
+    labelmaker_data* break_statement_label_data = (labelmaker_data*) switch_data->break_statement_label->data;
+    parent_block_data* stmnt_block_data = (parent_block_data*) data->stmnt_block->data;
+
+    for (int i = 0; i < stmnt_block_data->num_children; i++)
+    {
+        node_t* current_stmnt = stmnt_block_data->children[i];
+
+        if (current_stmnt->node_type == NODE_BREAK)
+        {
+            if (switch_data->break_statement_label == NULL)
+            {
+                tree_handle_error(node->line_no, "Failed to handle break statement inside of switch.");
+            }
+
+            // BREAK nodes shouldn't have data anyway, but just in case this changes in the
+            // future
+            free(current_stmnt->data);
+            current_stmnt->data = NULL;
+
+            free(current_stmnt);
+            current_stmnt = NULL;
+
+            current_stmnt = create_goto_statement_node(node->line_no, break_statement_label_data->identifier);
+            current_stmnt->parent = data->stmnt_block;
+            current_stmnt->end_line = true;
+
+            stmnt_block_data->children[i] = current_stmnt;
+        }
+    }
+
+    // We also need to generate a labelmaker node for this case. See
+    // generate_switch_statement in code_gen.c
+
+    data->case_label = create_labelmaker_node(node->line_no, get_unique_name_with_prefix("_PCC_SWITCH_CASE_"));
 }

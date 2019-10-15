@@ -31,6 +31,14 @@ string                  { return STRING; }
 String                  { return STRING; }
 STRING                  { return STRING; }
 
+switch                  { return SWITCH; }
+Switch                  { return SWITCH; }
+SWITCH                  { return SWITCH; }
+
+case                    { return CASE; }
+Case                    { return CASE; }
+CASE                    { return CASE; }
+
 bool                    { return BOOL; }
 Bool                    { return BOOL; }
 BOOL                    { return BOOL; }

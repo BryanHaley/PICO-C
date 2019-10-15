@@ -190,6 +190,12 @@ void generate_node(node_t* node)
         case (NODE_CONTINUE):
             generate_continue_statement(node);
             break;
+        case (NODE_SWITCH):
+            generate_switch_statement(node);
+            break;
+        case (NODE_CASE):
+            generate_case(node);
+            break;
         default:
             generate_parent_block(node, NULL);
             break;
@@ -713,9 +719,9 @@ void generate_for_loop(node_t* node)
         generate_node(data->stmnt_block);
         
         // see check_continue_statement in tree_checker.c
-        if (node->continue_statement != NULL)
+        if (data->continue_statement != NULL)
         {
-            continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+            continue_statement_data* continue_data = (continue_statement_data*) data->continue_statement->data;
             print_indents();
             fprintf(output_file, "-- PCC: continue statement label --\n");
             print_indents_with_additional(1);
@@ -763,9 +769,9 @@ void generate_for_loop(node_t* node)
         generate_node(data->stmnt_block);
 
         // see check_continue_statement in tree_checker.c
-        if (node->continue_statement != NULL)
+        if (data->continue_statement != NULL)
         {
-            continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+            continue_statement_data* continue_data = (continue_statement_data*) data->continue_statement->data;
             print_indents();
             fprintf(output_file, "-- PCC: continue statement label --\n");
             print_indents_with_additional(1);
@@ -790,9 +796,9 @@ void generate_while_loop(node_t* node)
     data->rel_expr->increase_indent = false;
 
     // see check_continue_statement in tree_checker.c
-    if (node->continue_statement != NULL)
+    if (data->continue_statement != NULL)
     {
-        continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+        continue_statement_data* continue_data = (continue_statement_data*) data->continue_statement->data;
         fprintf(output_file, "-- PCC: continue statement label --\n");
         print_indents();
         fprintf(output_file, "::%s::\n", continue_data->identifier);
@@ -823,9 +829,9 @@ void generate_do_while_loop(node_t* node)
     generate_node(data->stmnt_block);
 
     // see check_continue_statement in tree_checker.c
-    if (node->continue_statement != NULL)
+    if (data->continue_statement != NULL)
     {
-        continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+        continue_statement_data* continue_data = (continue_statement_data*) data->continue_statement->data;
         print_indents();
         fprintf(output_file, "-- PCC: continue statement label --\n");
         print_indents_with_additional(1);
@@ -852,9 +858,9 @@ void generate_do_until_loop(node_t* node)
     generate_node(data->stmnt_block);
 
     // see check_continue_statement in tree_checker.c
-    if (node->continue_statement != NULL)
+    if (data->continue_statement != NULL)
     {
-        continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+        continue_statement_data* continue_data = (continue_statement_data*) data->continue_statement->data;
         print_indents();
         fprintf(output_file, "-- PCC: continue statement label --\n");
         print_indents_with_additional(1);
@@ -909,4 +915,82 @@ void generate_continue_statement(node_t* node)
     continue_statement_data* data = (continue_statement_data*) node->data;
 
     fprintf(output_file, "goto %s", data->identifier);
+}
+
+void generate_switch_statement(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    switch_statement_data* data = (switch_statement_data*) node->data;
+
+    // See for more information: http://lua-users.org/wiki/SwitchStatement 
+    // Ideally I would've liked to have gone with the "Simple Table of functions"
+    // method, but that breaks lexical scoping, as nested functions in Lua
+    // do not have access to variables in the scope of their enclosing
+    // functions.
+
+    // For now, I'm compromising by using the "Simple Table of functions" method to
+    // call goto statements leading to labels within the outer function, thus preserving
+    // the scope. It also allows the expected "pass-through" vs "break" behaviour of
+    // C switch statements. However, this is probably inefficient and alternate 
+    // methods will need to be investigated. Not to mention it generates a ton of tokens, 
+    // which is bad for PICO-8.
+
+    char* switch_table_name = get_unique_name_with_prefix("_PCC_SWITCH_TABLE_");
+
+    fprintf(output_file, "%s = {\n", switch_table_name);
+
+    //generate_node(data->case_block);
+    parent_block_data* case_block_data = (parent_block_data*) data->case_block->data;
+
+    for (int i = 0; i < case_block_data->num_children; i++)
+    {
+        case_data* child_case_data = (case_data*) case_block_data->children[i]->data;
+        labelmaker_data* case_label_data = (labelmaker_data*) child_case_data->case_label->data;
+
+        print_indents_with_additional(1);
+        fprintf(output_file, "[");
+        generate_node(child_case_data->expr);
+
+        if (i == case_block_data->num_children-1)
+        {
+            fprintf(output_file, "] = function() goto %s end\n", case_label_data->identifier);
+        }
+
+        else
+        {
+            fprintf(output_file, "] = function() goto %s end,\n", case_label_data->identifier);
+        }
+    }
+
+    print_indents();
+    fprintf(output_file, "}\n");
+
+    print_indents();
+    fprintf(output_file, "%s[", switch_table_name);
+    generate_node(data->expr);
+    fprintf(output_file, "]()\n\n");
+
+    print_indents();
+    fprintf(output_file, "-- PCC: %s cases --\n", switch_table_name);
+
+    generate_node(data->case_block);
+
+    fprintf(output_file, "\n");
+    print_indents();
+    generate_node(data->break_statement_label);
+}
+
+void generate_case(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    case_data* data = (case_data*) node->data;
+
+    data->case_label->end_line = true;
+
+    generate_node(data->case_label);
+    generate_node(data->stmnt_block);
+
+    return;
 }

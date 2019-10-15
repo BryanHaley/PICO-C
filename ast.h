@@ -19,6 +19,7 @@
  * Write "generate" method in code_gen.c
  * Add a case to the switch in generate_node in code_gen.c
  * Don't forget to use breaks in above switch statements.
+ * If adding a loop, add a condition in check_continue_statement in tree_checker.c
  */
 
 typedef enum 
@@ -38,6 +39,8 @@ typedef enum
     NODE_ASSIGN_DEST,
     NODE_BIN_EXPR,
     NODE_BREAK,
+    NODE_CASE,
+    NODE_CASE_BLOCK,
     NODE_CONTINUE,
     NODE_DEC,
     NODE_DEC_W_ASSIGN,
@@ -65,6 +68,7 @@ typedef enum
     NODE_STRUCT_DEF,
     NODE_STRUCT_INIT,
     NODE_STRUCT_MEM_BLOCK,
+    NODE_SWITCH,
     NODE_SYMBOL
 } node_type_e;
 
@@ -81,8 +85,6 @@ struct node_t
     bool global_statement; // is this node in the global scope
     bool dont_specify_global; // prevents printing of "local" or "global"
     bool member; // member of a data structure like a struct or class
-    
-    node_t* continue_statement; // easy access for generating continue statement in loops
 
     int line_no;
     
@@ -256,18 +258,24 @@ typedef struct
 {
     node_t* rel_expr;
     node_t* stmnt_block;
+
+    node_t* continue_statement;
 } while_loop_data;
 
 typedef struct
 {
     node_t* rel_expr;
     node_t* stmnt_block;
+
+    node_t* continue_statement;
 } do_while_loop_data;
 
 typedef struct
 {
     node_t* rel_expr;
     node_t* stmnt_block;
+
+    node_t* continue_statement;
 } do_until_loop_data;
 
 typedef struct
@@ -276,6 +284,8 @@ typedef struct
     node_t* rel_expr;
     node_t* inc_stmnt;
     node_t* stmnt_block;
+
+    node_t* continue_statement;
 } for_loop_data;
 
 typedef struct
@@ -297,5 +307,21 @@ typedef struct
 {
     node_t* expr;
 } return_statement_data;
+
+typedef struct
+{
+    node_t* expr;
+    node_t* case_block;
+
+    node_t* break_statement_label;
+} switch_statement_data;
+
+typedef struct
+{
+    node_t* expr;
+    node_t* stmnt_block;
+
+    node_t* case_label;
+} case_data;
 
 #endif
