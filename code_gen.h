@@ -8,10 +8,13 @@
 
 FILE* output_file;
 int indent_level;
-int unique_identifier_suffix_num;
+int unique_name_suffix_num;
 
 void code_gen_error(int line_no, char* err);
-char* get_unique_identifier_suffix();
+char* get_unique_name();
+char* get_unique_name_with_prefix(char* prefix);
+void print_indents_with_additional(int additional);
+void print_indents();
 
 void generate_code(FILE* out, tree_t* syntax_tree);
 void generate_node(node_t* node);
@@ -33,7 +36,7 @@ void generate_array_accessor(node_t* node);
 void generate_array_dim(node_t* node);
 void generate_mutli_dim_array_dec(node_t* node);
 void generate_array_declaration(node_t* node);
-void generate_struct_declaration(node_t* node);
+void generate_struct_definition(node_t* node);
 void generate_struct_initialization(node_t* node);
 void generate_symbol(node_t* node);
 void generate_method_call(node_t* node);
@@ -48,5 +51,6 @@ void generate_labelmaker(node_t* node);
 void generate_goto_statement(node_t* node);
 void generate_break_statement(node_t* node);
 void generate_return_statement(node_t* node);
+void generate_continue_statement(node_t* node);
 
 #endif

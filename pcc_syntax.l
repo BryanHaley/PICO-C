@@ -104,6 +104,10 @@ break                   { return BREAK; }
 Break                   { return BREAK; }
 BREAK                   { return BREAK; }
 
+continue                { return CONTINUE; }
+Continue                { return CONTINUE; }
+CONTINUE                { return CONTINUE; }
+
 return                  { return RETURN; }
 Return                  { return RETURN; }
 RETURN                  { return RETURN; }

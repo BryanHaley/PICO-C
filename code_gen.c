@@ -36,34 +36,43 @@ void code_gen_error(int line_no, char* err)
     return;
 }
 
-char* get_unique_identifier_suffix()
+char* get_unique_name()
 {
-    unique_identifier_suffix_num++;
+    return get_unique_name_with_prefix("_PCC_VAR_");
+}
 
-    char* prefix = "_PCC_VAR_";
+char* get_unique_name_with_prefix(char* prefix)
+{
+    unique_name_suffix_num++;
 
     // see for buffer size formula: https://stackoverflow.com/a/10536254
     size_t buff_size = strlen(prefix)+(3*sizeof(int)+2);
     char* str_buff = (char*) calloc(buff_size, sizeof(char));
 
-    size_t length = snprintf(str_buff, buff_size, "%s%d", prefix, unique_identifier_suffix_num);
+    size_t length = snprintf(str_buff, buff_size, "%s%d", prefix, unique_name_suffix_num);
 
     str_buff = realloc((void*) str_buff, length+1);
 
     return str_buff;
 }
 
-void print_indents()
+void print_indents_with_additional(int additional)
 {
-    for (int i = 0; i < indent_level; i++)
+    for (int i = 0; i < indent_level+additional; i++)
     {
         fprintf(output_file, INDENT_TOKEN);
     }
 }
 
+void print_indents()
+{
+    print_indents_with_additional(0);
+}
+
 void generate_node(node_t* node)
 {
-    if (node == NULL) { return; }
+    if (err_in_code_gen) { return; }
+    if (node == NULL)    { return; }
 
     if      (node->global_statement) { indent_level = 0; }
     else if (node->increase_indent)  { indent_level++;   }
@@ -134,7 +143,7 @@ void generate_node(node_t* node)
             generate_mutli_dim_array_dec(node);
             break;
         case (NODE_STRUCT_DEF):
-            generate_struct_declaration(node);
+            generate_struct_definition(node);
             break;
         case (NODE_STRUCT_INIT):
             generate_struct_initialization(node);
@@ -177,6 +186,9 @@ void generate_node(node_t* node)
             break;
         case (NODE_RETURN):
             generate_return_statement(node);
+            break;
+        case (NODE_CONTINUE):
+            generate_continue_statement(node);
             break;
         default:
             generate_parent_block(node, NULL);
@@ -475,7 +487,7 @@ void generate_array_declaration(node_t* node)
     }
 }
 
-void generate_struct_declaration(node_t* node)
+void generate_struct_definition(node_t* node)
 {
     if (node == NULL) { return; }
 
@@ -660,6 +672,7 @@ void generate_for_loop(node_t* node)
                 fprintf(output_file, ", -1");
             }
 
+            // Redundant in Lua. Save the tokens.
             /*else if (strcmp(inc_stmnt_data->op, "++") == 0)
             {
                 fprintf(output_file, "1");
@@ -699,6 +712,16 @@ void generate_for_loop(node_t* node)
         fprintf(output_file, " do\n");
         generate_node(data->stmnt_block);
         
+        // see check_continue_statement in tree_checker.c
+        if (node->continue_statement != NULL)
+        {
+            continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+            print_indents();
+            fprintf(output_file, "-- PCC: continue statement label --\n");
+            print_indents_with_additional(1);
+            fprintf(output_file, "::%s::\n", continue_data->identifier);
+        }
+
         print_indents();
         fprintf(output_file, "end");
     }
@@ -739,6 +762,16 @@ void generate_for_loop(node_t* node)
 
         generate_node(data->stmnt_block);
 
+        // see check_continue_statement in tree_checker.c
+        if (node->continue_statement != NULL)
+        {
+            continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+            print_indents();
+            fprintf(output_file, "-- PCC: continue statement label --\n");
+            print_indents_with_additional(1);
+            fprintf(output_file, "::%s::\n", continue_data->identifier);
+        }
+
         print_indents();
         fprintf(output_file, "-- PCC: increment for loop --\n");
         generate_node(data->inc_stmnt);
@@ -756,6 +789,16 @@ void generate_while_loop(node_t* node)
     data->rel_expr->end_line = false;
     data->rel_expr->increase_indent = false;
 
+    // see check_continue_statement in tree_checker.c
+    if (node->continue_statement != NULL)
+    {
+        continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+        fprintf(output_file, "-- PCC: continue statement label --\n");
+        print_indents();
+        fprintf(output_file, "::%s::\n", continue_data->identifier);
+        print_indents();
+    }
+
     fprintf(output_file, "while ");
     generate_node(data->rel_expr);
     fprintf(output_file, " do\n");
@@ -770,7 +813,7 @@ void generate_do_while_loop(node_t* node)
 {
     if (node == NULL) { return; }
 
-    while_loop_data* data = (while_loop_data*) node->data;
+    do_while_loop_data* data = (do_while_loop_data*) node->data;
 
     data->rel_expr->end_line = false;
     data->rel_expr->increase_indent = false;
@@ -778,6 +821,16 @@ void generate_do_while_loop(node_t* node)
     fprintf(output_file, "repeat\n");
 
     generate_node(data->stmnt_block);
+
+    // see check_continue_statement in tree_checker.c
+    if (node->continue_statement != NULL)
+    {
+        continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+        print_indents();
+        fprintf(output_file, "-- PCC: continue statement label --\n");
+        print_indents_with_additional(1);
+        fprintf(output_file, "::%s::\n", continue_data->identifier);
+    }
 
     print_indents();
     fprintf(output_file, "until not (");
@@ -789,7 +842,7 @@ void generate_do_until_loop(node_t* node)
 {
     if (node == NULL) { return; }
 
-    while_loop_data* data = (while_loop_data*) node->data;
+    do_until_loop_data* data = (do_until_loop_data*) node->data;
 
     data->rel_expr->end_line = false;
     data->rel_expr->increase_indent = false;
@@ -797,6 +850,16 @@ void generate_do_until_loop(node_t* node)
     fprintf(output_file, "repeat\n");
 
     generate_node(data->stmnt_block);
+
+    // see check_continue_statement in tree_checker.c
+    if (node->continue_statement != NULL)
+    {
+        continue_statement_data* continue_data = (continue_statement_data*) node->continue_statement->data;
+        print_indents();
+        fprintf(output_file, "-- PCC: continue statement label --\n");
+        print_indents_with_additional(1);
+        fprintf(output_file, "::%s::\n", continue_data->identifier);
+    }
 
     print_indents();
     fprintf(output_file, "until ");
@@ -837,4 +900,13 @@ void generate_return_statement(node_t* node)
     fprintf(output_file, "return ");
 
     if (data->expr != NULL) { generate_node(data->expr); }
+}
+
+void generate_continue_statement(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    continue_statement_data* data = (continue_statement_data*) node->data;
+
+    fprintf(output_file, "goto %s", data->identifier);
 }

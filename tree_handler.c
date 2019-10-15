@@ -96,6 +96,9 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_GOTO):
             node->data = calloc(1, sizeof(goto_statement_data));
             break;
+        case (NODE_CONTINUE):
+            node->data = calloc(1, sizeof(continue_statement_data));
+            break;
         case (NODE_BREAK):
             node->data = NULL;
             break;
@@ -562,6 +565,12 @@ node_t* create_goto_statement_node(int line_no, char* identifier)
 node_t* create_break_statement_node(int line_no)
 {
     node_t* node = create_node(NODE_BREAK, line_no);
+    return node;
+}
+
+node_t* create_continue_statement_node(int line_no)
+{
+    node_t* node = create_node(NODE_CONTINUE, line_no);
     return node;
 }
 

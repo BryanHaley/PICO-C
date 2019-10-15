@@ -41,7 +41,7 @@ node_t* create_do_until_loop_node(int line_no, node_t* stmnt_block, node_t* rel_
 node_t* create_labelmaker_node(int line_no, char* identifier);
 node_t* create_goto_statement_node(int line_no, char* identifier);
 node_t* create_break_statement_node(int line_no);
-
+node_t* create_continue_statement_node(int line_no);
 node_t* create_return_statement_node(int line_no, node_t* expr);
 
 node_t* create_bin_expr_node(int line_no, node_t* left_node, node_t* right_node, char* op);

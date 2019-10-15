@@ -1,3 +1,9 @@
+/* ast.h
+ * 
+ * Contains definitions of the node data structure, and the data structs used by 
+ * respective nodes.
+ */
+
 #ifndef AST_H
 #define AST_H
 
@@ -8,6 +14,8 @@
  * Declare its data struct below.
  * Write "create" method in tree_handler.c
  * Add a case to the switch in create_node in tree_handler.c
+ * Write "check" method in tree_checker.c
+ * Add a case to the switch in check_node in tree_checker.c
  * Write "generate" method in code_gen.c
  * Add a case to the switch in generate_node in code_gen.c
  * Don't forget to use breaks in above switch statements.
@@ -30,6 +38,7 @@ typedef enum
     NODE_ASSIGN_DEST,
     NODE_BIN_EXPR,
     NODE_BREAK,
+    NODE_CONTINUE,
     NODE_DEC,
     NODE_DEC_W_ASSIGN,
     NODE_FOR_LOOP,
@@ -65,12 +74,15 @@ struct node_t
 {
     node_t *parent;
     node_type_e node_type;
+
     bool end_line;
     bool increase_indent;
-    bool global;
-    bool global_statement;
-    bool dont_specify_global;
-    bool member;
+    bool global; // global or local
+    bool global_statement; // is this node in the global scope
+    bool dont_specify_global; // prevents printing of "local" or "global"
+    bool member; // member of a data structure like a struct or class
+    
+    node_t* continue_statement; // easy access for generating continue statement in loops
 
     int line_no;
     
@@ -270,6 +282,11 @@ typedef struct
 {
     char* identifier;
 } labelmaker_data;
+
+typedef struct
+{
+    char* identifier;
+} continue_statement_data;
 
 typedef struct
 {

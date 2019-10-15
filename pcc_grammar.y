@@ -5,6 +5,7 @@
 #include "pcc_grammar.h"
 #include "ast.h"
 #include "tree_handler.h"
+#include "tree_checker.h"
 #include "code_gen.h"
 
 FILE *yyin;
@@ -23,7 +24,7 @@ FILE *yyin;
 
 %token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
 %token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE
-%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO
+%token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK
 %token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP UNTIL
@@ -41,7 +42,7 @@ FILE *yyin;
 %type<nodeValue> relational_expression method_call statement_opt_braces goto_statement
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
 %type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
-%type<nodeValue> return_statement
+%type<nodeValue> return_statement continue_statement
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -356,6 +357,11 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
+    | continue_statement ';'
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | return_statement ';'
     {
         $1->end_line = true;
@@ -378,6 +384,11 @@ goto_statement
 break_statement
     : BREAK
     { $$ = create_break_statement_node(yylineno); }
+    ;
+
+continue_statement
+    : CONTINUE
+    { $$ = create_continue_statement_node(yylineno); }
     ;
 
 return_statement
@@ -696,6 +707,8 @@ int main(int argc, char** argv)
 {    
     yyin = fopen(argv[1], "r");
     yyparse();
+
+    check_tree(syntax_tree);
 
     if (!err_in_lex && !err_in_parse && !err_in_tree && !err_in_code_gen)
     {
