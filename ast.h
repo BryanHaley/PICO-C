@@ -313,7 +313,10 @@ typedef struct
     node_t* expr;
     node_t* case_block;
 
-    node_t* break_statement_label;
+    node_t* break_me;
+    node_t* default_bool;
+
+    bool has_default;
 } switch_statement_data;
 
 typedef struct
@@ -321,7 +324,7 @@ typedef struct
     node_t* expr;
     node_t* stmnt_block;
 
-    node_t* case_label;
+    bool has_break;
 } case_data;
 
 #endif

@@ -542,12 +542,22 @@ void check_switch_statement(node_t* node)
 
     switch_statement_data* data = (switch_statement_data*) node->data;
     
-    // Need to generate label maker node for use with break statements inside switch
+    // Need to generate bool variable node for use with break statements inside switch
     // Do this BEFORE checking the case_block
-    data->break_statement_label = create_labelmaker_node(node->line_no, get_unique_name_with_prefix("_PCC_SWITCH_BREAK_"));
+    data->break_me = create_declaration_node(node->line_no, "bool", get_unique_name_with_prefix("_PCC_NO_BREAK_BOOL_"));
+    data->break_me->end_line = true;
 
     if (data->expr != NULL)       { check_node(data->expr); }
     if (data->case_block != NULL) { check_node(data->case_block); }
+
+    if (data->has_default)
+    {
+        bool expr_true_val = true;
+        node_t* expr_true = create_primary_node(node->line_no, PRI_LITERAL_BOOL, (void*) &expr_true_val);
+            
+        data->default_bool = create_declaration_with_assign_node(node->line_no, "bool", get_unique_name_with_prefix("_PCC_DEFAULT_"), expr_true);
+        data->default_bool->end_line = true;
+    }
 
     /* TODO: find result type of expression. Needs to be either number or string */
 }
@@ -570,13 +580,26 @@ void check_case(node_t* node)
         return;
     }
 
+    switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
+
+    // If the expr node is null, this is the default case
+    if (data->expr == NULL)
+    {
+        if (switch_data->has_default)
+        {
+            tree_handle_error(node->line_no, "Multiple default cases in switch statement.");
+            return;
+        }
+
+        switch_data->has_default = true;
+    }
+
     // Since switch-case isn't natively supported by Lua, we can't simply generate
     // 1:1 break statements. Thus, we need to find any break statements used inside the
-    // case statement block and change them to goto statements that lead to the switch's
-    // break_statement_label
+    // case statement block and handle them by flipping the bool managing the
+    // pass-through of case actions
 
-    switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
-    labelmaker_data* break_statement_label_data = (labelmaker_data*) switch_data->break_statement_label->data;
+    declaration_data* break_me_data = (declaration_data*) switch_data->break_me->data;
     parent_block_data* stmnt_block_data = (parent_block_data*) data->stmnt_block->data;
 
     for (int i = 0; i < stmnt_block_data->num_children; i++)
@@ -585,7 +608,8 @@ void check_case(node_t* node)
 
         if (current_stmnt->node_type == NODE_BREAK)
         {
-            if (switch_data->break_statement_label == NULL)
+            data->has_break = true;
+            if (switch_data->break_me == NULL)
             {
                 tree_handle_error(node->line_no, "Failed to handle break statement inside of switch.");
             }
@@ -598,16 +622,13 @@ void check_case(node_t* node)
             free(current_stmnt);
             current_stmnt = NULL;
 
-            current_stmnt = create_goto_statement_node(node->line_no, break_statement_label_data->identifier);
-            current_stmnt->parent = data->stmnt_block;
+            bool expr_false_val = false;
+            node_t* expr_false = create_primary_node(node->line_no, PRI_LITERAL_BOOL, (void*) &expr_false_val);
+            node_t* symbol = create_symbol_node(node->line_no, break_me_data->identifier);
+            current_stmnt = create_assign_node(node->line_no, symbol, expr_false, "=");
             current_stmnt->end_line = true;
 
             stmnt_block_data->children[i] = current_stmnt;
         }
     }
-
-    // We also need to generate a labelmaker node for this case. See
-    // generate_switch_statement in code_gen.c
-
-    data->case_label = create_labelmaker_node(node->line_no, get_unique_name_with_prefix("_PCC_SWITCH_CASE_"));
 }

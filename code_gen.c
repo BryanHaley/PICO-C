@@ -100,6 +100,9 @@ void generate_node(node_t* node)
         case (NODE_LIT_BLOCK):
             generate_parent_block(node, ", ");
             break;
+        case (NODE_CASE_BLOCK):
+            generate_parent_block(node, ",\n");
+            break;
         case (NODE_STRUCT_MEM_BLOCK):
             generate_parent_block(node, ",\n");
             break;
@@ -923,74 +926,77 @@ void generate_switch_statement(node_t* node)
 
     switch_statement_data* data = (switch_statement_data*) node->data;
 
-    // See for more information: http://lua-users.org/wiki/SwitchStatement 
-    // Ideally I would've liked to have gone with the "Simple Table of functions"
-    // method, but that breaks lexical scoping, as nested functions in Lua
-    // do not have access to variables in the scope of their enclosing
-    // functions.
+    // Unforuntately all "fast" methods of creating switch statements in Lua
+    // rely on nested functions, which break the expected lexical scoping.
+    // Breaking lexical scoping also means we can't use goto statements.
+    // For now, implement it the (horribly) slow way.
 
-    // For now, I'm compromising by using the "Simple Table of functions" method to
-    // call goto statements leading to labels within the outer function, thus preserving
-    // the scope. It also allows the expected "pass-through" vs "break" behaviour of
-    // C switch statements. However, this is probably inefficient and alternate 
-    // methods will need to be investigated. Not to mention it generates a ton of tokens, 
-    // which is bad for PICO-8.
+    fprintf(output_file, "-- PCC: emulated switch-case --\n");
+    generate_node(data->break_me);
+    if (data->has_default) { generate_node(data->default_bool); }
 
-    char* switch_table_name = get_unique_name_with_prefix("_PCC_SWITCH_TABLE_");
-
-    fprintf(output_file, "%s = {\n", switch_table_name);
-
-    //generate_node(data->case_block);
     parent_block_data* case_block_data = (parent_block_data*) data->case_block->data;
+    declaration_data* break_me_data = (declaration_data*) data->break_me->data;
+    declaration_data* default_bool_data = (declaration_data*) data->default_bool->data;
 
     for (int i = 0; i < case_block_data->num_children; i++)
     {
-        case_data* child_case_data = (case_data*) case_block_data->children[i]->data;
-        labelmaker_data* case_label_data = (labelmaker_data*) child_case_data->case_label->data;
+        case_data* current_case_data = (case_data*) case_block_data->children[i]->data;
 
-        print_indents_with_additional(1);
-        fprintf(output_file, "[");
-        generate_node(child_case_data->expr);
-
-        if (i == case_block_data->num_children-1)
+        if (current_case_data->expr != NULL)
         {
-            fprintf(output_file, "] = function() goto %s end\n", case_label_data->identifier);
+            fprintf(output_file, "\n");
+            print_indents();
+            fprintf(output_file, "if ((%s) or (", break_me_data->identifier);
+            generate_node(data->expr);
+            fprintf(output_file, " == ");
+            generate_node(current_case_data->expr);
+            fprintf(output_file, ")) then\n");
+
+            print_indents_with_additional(1);
+            fprintf(output_file, "%s = true\n", break_me_data->identifier);
+
+            generate_node(current_case_data->stmnt_block);
+            
+            print_indents();
+            fprintf(output_file, "end");
         }
 
+        // Default case
         else
         {
-            fprintf(output_file, "] = function() goto %s end,\n", case_label_data->identifier);
+            fprintf(output_file, "\n");
+            print_indents();
+            fprintf(output_file, "if (%s) then\n", default_bool_data->identifier);
+
+            generate_node(current_case_data->stmnt_block);
+            
+            print_indents();
+            fprintf(output_file, "end");
         }
     }
 
-    print_indents();
-    fprintf(output_file, "}\n");
-
-    print_indents();
-    fprintf(output_file, "%s[", switch_table_name);
-    generate_node(data->expr);
-    fprintf(output_file, "]()\n\n");
-
-    print_indents();
-    fprintf(output_file, "-- PCC: %s cases --\n", switch_table_name);
-
-    generate_node(data->case_block);
-
-    fprintf(output_file, "\n");
-    print_indents();
-    generate_node(data->break_statement_label);
+    // TODO: This is a horribly slow and nasty implementation of switch statements, but
+    // nested functions breaking lexical scoping limits my options. I will consider some
+    // sort of "simple switch" that is more limited but can be implemented using the much
+    // faster "table of functions" method. This can be done if the switch case actions are
+    // isolated in scope and break automatically, rather than the C style of an optional
+    // explicit break.
 }
 
 void generate_case(node_t* node)
 {
     if (node == NULL) { return; }
 
-    case_data* data = (case_data*) node->data;
+    /*case_data* data = (case_data*) node->data;
 
-    data->case_label->end_line = true;
-
-    generate_node(data->case_label);
+    print_indents();
+    fprintf(output_file, "[");
+    generate_node(data->expr);
+    fprintf(output_file, "] = function()\n");
     generate_node(data->stmnt_block);
+    print_indents();
+    fprintf(output_file, "end");*/
 
     return;
 }

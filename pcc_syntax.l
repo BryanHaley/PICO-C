@@ -39,6 +39,10 @@ case                    { return CASE; }
 Case                    { return CASE; }
 CASE                    { return CASE; }
 
+default                 { return DEFAULT; }
+Default                 { return DEFAULT; }
+DEFAULT                 { return DEFAULT; }
+
 bool                    { return BOOL; }
 Bool                    { return BOOL; }
 BOOL                    { return BOOL; }

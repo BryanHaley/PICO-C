@@ -22,7 +22,7 @@ FILE *yyin;
     node_t* nodeValue;
 }
 
-%token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL
+%token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL DEFAULT
 %token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE SWITCH 
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
@@ -405,7 +405,10 @@ return_statement
 
 switch_statement
     : SWITCH '(' expression ')' '{' case_block '}'
-    { $$ = create_switch_statement_node(yylineno, $3, $6); }
+    {
+        $6->increase_indent = true;
+        $$ = create_switch_statement_node(yylineno, $3, $6);
+    }
     ;
 
 case_block
@@ -424,6 +427,11 @@ case
     {
         $6->increase_indent = true;
         $$ = create_case_node(yylineno, $3, $6);
+    }
+    | DEFAULT ':' statement_block
+    {
+        $3->increase_indent = true;
+        $$ = create_case_node(yylineno, NULL, $3);
     }
     ;
 
