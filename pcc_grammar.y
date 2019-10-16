@@ -27,7 +27,7 @@ FILE *yyin;
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
-%token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP UNTIL
+%token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP UNTIL FASTSWITCH
 
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
@@ -43,6 +43,7 @@ FILE *yyin;
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
 %type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
 %type<nodeValue> return_statement continue_statement switch_statement case_block case
+%type<nodeValue> fast_switch_statement fswitch_call
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -104,6 +105,11 @@ global_statement
         add_child_to_parent_block(syntax_tree->global_block, $1);
     }
     | multi_dim_array_declaration ';'
+    {
+        $1->global = true; $1->global_statement = true; $1->end_line = true;
+        add_child_to_parent_block(syntax_tree->global_block, $1);
+    }
+    | fast_switch_statement
     {
         $1->global = true; $1->global_statement = true; $1->end_line = true;
         add_child_to_parent_block(syntax_tree->global_block, $1);
@@ -372,6 +378,16 @@ statement
         $1->end_line = true;
         $$ = $1;
     }
+    | fast_switch_statement
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
+    | fswitch_call
+    {
+        $1->end_line = true;
+        $$ = $1;
+    }
     | ';'
     { $$ = NULL; }
     ;
@@ -408,6 +424,19 @@ switch_statement
     {
         $6->increase_indent = true;
         $$ = create_switch_statement_node(yylineno, $3, $6);
+    }
+    ;
+
+fast_switch_statement
+    : FASTSWITCH IDENTIFIER '(' argument_definition_block ')' '{' case_block '}'
+    {
+        $7->increase_indent = true;
+        $$ = create_fast_switch_statement_node(yylineno, $2, $4, $7);
+    }
+    | FASTSWITCH IDENTIFIER '(' ')' '{' case_block '}'
+    {
+        $6->increase_indent = true;
+        $$ = create_fast_switch_statement_node(yylineno, $2, NULL, $6);
     }
     ;
 
@@ -497,6 +526,11 @@ method_call
 function_call
     : IDENTIFIER '(' argument_block ')' 
     { $$ = create_func_call_node(yylineno, $1, $3); }
+    ;
+
+fswitch_call
+    : IDENTIFIER '[' expression ']' '(' argument_block ')' 
+    { $$ = create_fswitch_call_node(yylineno, $1, $3, $6); }
     ;
 
 argument_block
@@ -664,6 +698,8 @@ expression
     | function_call
     { $$ = $1; }
     | array_access
+    { $$ = $1; }
+    | object_access
     { $$ = $1; }
     | IDENTIFIER
     { $$ = create_symbol_node(yylineno, $1); }

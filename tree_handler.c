@@ -105,8 +105,14 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_SWITCH):
             node->data = calloc(1, sizeof(switch_statement_data));
             break;
+        case (NODE_FAST_SWITCH):
+            node->data = calloc(1, sizeof(fast_switch_data));
+            break;
         case (NODE_CASE):
             node->data = calloc(1, sizeof(case_data));
+            break;
+        case (NODE_FSWITCH_CALL):
+            node->data = calloc(1, sizeof(fswitch_call_data));
             break;
         default:
             node->data = calloc(1, sizeof(parent_block_data));
@@ -602,6 +608,36 @@ node_t* create_switch_statement_node(int line_no, node_t* expr, node_t* case_blo
 
     if (expr != NULL)       { expr->parent = node; }
     if (case_block != NULL) { case_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_fast_switch_statement_node(int line_no, char* identifier, node_t* params, node_t* case_block)
+{
+    node_t* node = create_node(NODE_FAST_SWITCH, line_no);
+    fast_switch_data* data = (fast_switch_data*) node->data;
+
+    data->identifier = identifier;
+    data->params     = params;
+    data->case_block = case_block;
+
+    if (params != NULL)     { params->parent = node; }
+    if (case_block != NULL) { case_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_fswitch_call_node(int line_no, char* identifier, node_t* expr, node_t* arg_block)
+{
+    node_t* node = create_node(NODE_FSWITCH_CALL, line_no);
+    fswitch_call_data* data = (fswitch_call_data*) node->data;
+
+    data->identifier = identifier;
+    data->expr       = expr;
+    data->arg_block  = arg_block;
+
+    if (expr != NULL)      { expr->parent = node; }
+    if (arg_block != NULL) { arg_block->parent = node; }
 
     return node;
 }

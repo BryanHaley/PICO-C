@@ -2,7 +2,7 @@
 function _PCC_SHALLOW_COPY(_PCC_t)
     local _PCC_t2 = {}
     for _PCC_k,_PCC_v in pairs(_PCC_t) do
-        t2[_PCC_k] = _PCC_v
+        _PCC_t2[_PCC_k] = _PCC_v
     end
     return _PCC_t2
 end

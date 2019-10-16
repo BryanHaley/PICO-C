@@ -69,6 +69,8 @@ typedef enum
     NODE_STRUCT_INIT,
     NODE_STRUCT_MEM_BLOCK,
     NODE_SWITCH,
+    NODE_FAST_SWITCH,
+    NODE_FSWITCH_CALL,
     NODE_SYMBOL
 } node_type_e;
 
@@ -321,10 +323,25 @@ typedef struct
 
 typedef struct
 {
+    char* identifier;
+
+    node_t* params;
+    node_t* case_block;
+} fast_switch_data;
+
+typedef struct
+{
     node_t* expr;
     node_t* stmnt_block;
 
     bool has_break;
 } case_data;
+
+typedef struct
+{
+    char* identifier;
+    node_t* expr;
+    node_t* arg_block;
+} fswitch_call_data;
 
 #endif

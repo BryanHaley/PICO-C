@@ -10,9 +10,6 @@ void generate_code(FILE* out, tree_t* syntax_tree)
 {
     output_file = out;
     
-    generate_node(syntax_tree->global_block);
-    fprintf(output_file, "\n");
-
     // Print utility functions at end of file for now
     FILE* util_functions = fopen("compiler_util_functions.lua", "r");
 
@@ -26,6 +23,10 @@ void generate_code(FILE* out, tree_t* syntax_tree)
 
         fprintf(output_file, "%c", (char) c);
     }
+
+    fprintf(output_file, "\n\n");
+
+    generate_node(syntax_tree->global_block);
 }
 
 void code_gen_error(int line_no, char* err)
@@ -196,8 +197,14 @@ void generate_node(node_t* node)
         case (NODE_SWITCH):
             generate_switch_statement(node);
             break;
+        case (NODE_FAST_SWITCH):
+            generate_fast_switch_statement(node);
+            break;
         case (NODE_CASE):
             generate_case(node);
+            break;
+        case (NODE_FSWITCH_CALL):
+            generate_fswitch_call(node);
             break;
         default:
             generate_parent_block(node, NULL);
@@ -502,7 +509,7 @@ void generate_struct_definition(node_t* node)
 
     struct_def_data* data = (struct_def_data*) node->data;
 
-    fprintf(output_file, "%s = readonlytable\n{\n", data->identifier);
+    fprintf(output_file, "%s = {\n", data->identifier);
 
     generate_node(data->member_block);
 
@@ -955,6 +962,8 @@ void generate_switch_statement(node_t* node)
 
             print_indents_with_additional(1);
             fprintf(output_file, "%s = true\n", break_me_data->identifier);
+            print_indents_with_additional(1);
+            fprintf(output_file, "%s = false\n", default_bool_data->identifier);
 
             generate_node(current_case_data->stmnt_block);
             
@@ -967,7 +976,7 @@ void generate_switch_statement(node_t* node)
         {
             fprintf(output_file, "\n");
             print_indents();
-            fprintf(output_file, "if (%s) then\n", default_bool_data->identifier);
+            fprintf(output_file, "if (%s or %s) then\n", break_me_data->identifier, default_bool_data->identifier);
 
             generate_node(current_case_data->stmnt_block);
             
@@ -984,19 +993,82 @@ void generate_switch_statement(node_t* node)
     // explicit break.
 }
 
+void generate_fast_switch_statement(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    fast_switch_data* data = (fast_switch_data*) node->data;
+
+    // See for more information: http://lua-users.org/wiki/SwitchStatement 
+    // Ideally I would've liked to have gone with the "Simple Table of functions"
+    // method, but that breaks lexical scoping, as nested functions in Lua
+    // do not have access to variables in the scope of their enclosing
+    // functions.
+
+    // For now, I'm compromising by using the "Simple Table of functions" method to
+    // call goto statements leading to labels within the outer function, thus preserving
+    // the scope. It also allows the expected "pass-through" vs "break" behaviour of
+    // C switch statements. However, this is probably inefficient and alternate 
+    // methods will need to be investigated. Not to mention it generates a ton of tokens, 
+    // which is bad for PICO-8.
+
+    fprintf(output_file, "%s = {\n", data->identifier);
+
+    generate_node(data->case_block);
+
+    fprintf(output_file, "\n");
+    print_indents();
+    fprintf(output_file, "}");
+}
+
+// used for fast switches only
 void generate_case(node_t* node)
 {
     if (node == NULL) { return; }
 
-    /*case_data* data = (case_data*) node->data;
+    case_data* data = (case_data*) node->data;
+    fast_switch_data* fswitch_data = (fast_switch_data*) node->parent->parent->data;
 
     print_indents();
     fprintf(output_file, "[");
-    generate_node(data->expr);
-    fprintf(output_file, "] = function()\n");
+
+    if (data->expr != NULL)
+    { generate_node(data->expr); }
+    else
+    { fprintf(output_file, "\"_PCC_DEFAULT\""); }
+
+    fprintf(output_file, "] = function(");
+
+    if (fswitch_data->params != NULL)
+    { generate_node(fswitch_data->params); }
+    
+    fprintf(output_file, ")\n");
     generate_node(data->stmnt_block);
     print_indents();
-    fprintf(output_file, "end");*/
+    fprintf(output_file, "end");
 
     return;
+}
+
+void generate_fswitch_call(node_t* node)
+{
+    if (node == NULL) { return; }
+    
+    fswitch_call_data* data = (fswitch_call_data*) node->data;
+
+    fprintf(output_file, "%s[", data->identifier);
+
+    if (data->expr != NULL)
+    {
+        generate_node(data->expr);
+    }
+
+    fprintf(output_file, "](");
+
+    if (data->arg_block != NULL)
+    {
+        generate_node(data->arg_block);
+    }
+
+    fprintf(output_file, ")");
 }

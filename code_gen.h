@@ -53,6 +53,8 @@ void generate_break_statement(node_t* node);
 void generate_return_statement(node_t* node);
 void generate_continue_statement(node_t* node);
 void generate_switch_statement(node_t* node);
+void generate_fast_switch_statement(node_t* node);
 void generate_case(node_t* node);
+void generate_fswitch_call(node_t* node);
 
 #endif

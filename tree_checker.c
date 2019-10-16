@@ -117,8 +117,14 @@ void check_node(node_t* node)
         case (NODE_SWITCH):
             check_switch_statement(node);
             break;
+        case (NODE_FAST_SWITCH):
+            check_fast_switch_statement(node);
+            break;
         case (NODE_CASE):
             check_case(node);
+            break;
+        case (NODE_FSWITCH_CALL):
+            check_fswitch_call(node);
             break;
         default:
             check_parent_block(node);
@@ -562,6 +568,18 @@ void check_switch_statement(node_t* node)
     /* TODO: find result type of expression. Needs to be either number or string */
 }
 
+void check_fast_switch_statement(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    fast_switch_data* data = (fast_switch_data*) node->data;
+    
+    if (data->params != NULL)     { check_node(data->params); }
+    if (data->case_block != NULL) { check_node(data->case_block); }
+
+    /* TODO: find result type of expression. Needs to be either number or string */
+}
+
 void check_case(node_t* node)
 {
     if (node == NULL) { return; }
@@ -574,9 +592,14 @@ void check_case(node_t* node)
     // switch node should always be the parent of the parent of a case node
     node_t* switch_node = node->parent->parent;
 
-    if (switch_node == NULL)
+    if (switch_node == NULL || (switch_node->node_type != NODE_SWITCH && switch_node->node_type != NODE_FAST_SWITCH))
     {
         tree_handle_error(node->line_no, "Could not find switch statement parent of case.");
+        return;
+    }
+
+    if (switch_node->node_type == NODE_FAST_SWITCH)
+    {
         return;
     }
 
@@ -612,12 +635,14 @@ void check_case(node_t* node)
             if (switch_data->break_me == NULL)
             {
                 tree_handle_error(node->line_no, "Failed to handle break statement inside of switch.");
+                return;
             }
 
             // BREAK nodes shouldn't have data anyway, but just in case this changes in the
             // future
             free(current_stmnt->data);
             current_stmnt->data = NULL;
+            stmnt_block_data->children[i] = NULL;
 
             free(current_stmnt);
             current_stmnt = NULL;
@@ -631,4 +656,21 @@ void check_case(node_t* node)
             stmnt_block_data->children[i] = current_stmnt;
         }
     }
+}
+
+void check_fswitch_call(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    fswitch_call_data* data = (fswitch_call_data*) node->data;
+
+    if (data->expr != NULL)      { check_node(data->expr); }
+    
+    else
+    {
+        tree_handle_error(node->line_no, "Must pass an expression to fswitch call.");
+        return;
+    }
+
+    if (data->arg_block != NULL) { check_node(data->arg_block); }
 }

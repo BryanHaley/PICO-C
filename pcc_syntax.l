@@ -35,6 +35,18 @@ switch                  { return SWITCH; }
 Switch                  { return SWITCH; }
 SWITCH                  { return SWITCH; }
 
+fswitch                 { return FASTSWITCH; }
+fSwitch                 { return FASTSWITCH; }
+fSWITCH                 { return FASTSWITCH; }
+Fswitch                 { return FASTSWITCH; }
+FSwitch                 { return FASTSWITCH; }
+FSWITCH                 { return FASTSWITCH; }
+fastswitch              { return FASTSWITCH; }
+fastSwitch              { return FASTSWITCH; }
+Fastswitch              { return FASTSWITCH; }
+FastSwitch              { return FASTSWITCH; }
+FASTSWITCH              { return FASTSWITCH; }
+
 case                    { return CASE; }
 Case                    { return CASE; }
 CASE                    { return CASE; }
