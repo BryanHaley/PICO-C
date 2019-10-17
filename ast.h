@@ -323,10 +323,13 @@ typedef struct
 
 typedef struct
 {
+    char* type;
     char* identifier;
 
     node_t* params;
     node_t* case_block;
+
+    bool has_default;
 } fast_switch_data;
 
 typedef struct

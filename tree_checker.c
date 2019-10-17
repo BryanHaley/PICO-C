@@ -126,6 +126,8 @@ void check_node(node_t* node)
         case (NODE_FSWITCH_CALL):
             check_fswitch_call(node);
             break;
+        case (NODE_OBJ_ACCESSOR_BLOCK):
+            check_obj_accessor_block(node);
         default:
             check_parent_block(node);
             break;
@@ -137,6 +139,24 @@ void check_parent_block(node_t* parent)
     if (parent == NULL) { return; }
 
     parent_block_data* parent_data = (parent_block_data*) parent->data;
+
+    for (int i = 0; i < parent_data->num_children; i++)
+    {
+        check_node(parent_data->children[i]);
+    }
+}
+
+void check_obj_accessor_block(node_t* parent)
+{
+    if (parent == NULL) { return; }
+
+    parent_block_data* parent_data = (parent_block_data*) parent->data;
+
+    if (parent_data->num_children == 1)
+    {
+        tree_handle_error(parent->line_no, "Trailing object accessor.");
+        return;
+    }
 
     for (int i = 0; i < parent_data->num_children; i++)
     {
@@ -598,31 +618,48 @@ void check_case(node_t* node)
         return;
     }
 
-    if (switch_node->node_type == NODE_FAST_SWITCH)
+    if (switch_node->node_type == NODE_SWITCH)
     {
-        return;
-    }
-
-    switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
-
-    // If the expr node is null, this is the default case
-    if (data->expr == NULL)
-    {
-        if (switch_data->has_default)
+        switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
+        
+        // If the expr node is null, this is the default case
+        if (data->expr == NULL)
         {
-            tree_handle_error(node->line_no, "Multiple default cases in switch statement.");
-            return;
-        }
+            if (switch_data->has_default)
+            {
+                tree_handle_error(node->line_no, "Multiple default cases in switch statement.");
+                return;
+            }
 
-        switch_data->has_default = true;
+            switch_data->has_default = true;
+        }
     }
+
+    else if (switch_node->node_type == NODE_FAST_SWITCH)
+    {
+        fast_switch_data* fswitch_data = (fast_switch_data*) switch_node->data;
+
+        // If the expr node is null, this is the default case
+        if (data->expr == NULL)
+        {
+            if (fswitch_data->has_default)
+            {
+                tree_handle_error(node->line_no, "Multiple default cases in switch statement.");
+                return;
+            }
+
+            fswitch_data->has_default = true;
+        }
+    }
+
+    bool case_has_break = false;
 
     // Since switch-case isn't natively supported by Lua, we can't simply generate
     // 1:1 break statements. Thus, we need to find any break statements used inside the
     // case statement block and handle them by flipping the bool managing the
-    // pass-through of case actions
+    // pass-through of case actions, or in the case of fast switch, exiting the function
+    // by returning.
 
-    declaration_data* break_me_data = (declaration_data*) switch_data->break_me->data;
     parent_block_data* stmnt_block_data = (parent_block_data*) data->stmnt_block->data;
 
     for (int i = 0; i < stmnt_block_data->num_children; i++)
@@ -631,12 +668,8 @@ void check_case(node_t* node)
 
         if (current_stmnt->node_type == NODE_BREAK)
         {
+            case_has_break = true;
             data->has_break = true;
-            if (switch_data->break_me == NULL)
-            {
-                tree_handle_error(node->line_no, "Failed to handle break statement inside of switch.");
-                return;
-            }
 
             // BREAK nodes shouldn't have data anyway, but just in case this changes in the
             // future
@@ -647,13 +680,36 @@ void check_case(node_t* node)
             free(current_stmnt);
             current_stmnt = NULL;
 
-            bool expr_false_val = false;
-            node_t* expr_false = create_primary_node(node->line_no, PRI_LITERAL_BOOL, (void*) &expr_false_val);
-            node_t* symbol = create_symbol_node(node->line_no, break_me_data->identifier);
-            current_stmnt = create_assign_node(node->line_no, symbol, expr_false, "=");
-            current_stmnt->end_line = true;
+            if (switch_node->node_type == NODE_SWITCH)
+            {
+                switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
+                declaration_data* break_me_data = (declaration_data*) switch_data->break_me->data;
+
+                bool expr_false_val = false;
+                node_t* expr_false = create_primary_node(node->line_no, PRI_LITERAL_BOOL, (void*) &expr_false_val);
+                node_t* symbol = create_symbol_node(node->line_no, break_me_data->identifier);
+                current_stmnt = create_assign_node(node->line_no, symbol, expr_false, "=");
+                current_stmnt->end_line = true;
+            }
+
+            else if (switch_node->node_type == NODE_FAST_SWITCH)
+            {
+                current_stmnt = create_return_statement_node(node->line_no, NULL);
+                current_stmnt->end_line = true;
+            }
 
             stmnt_block_data->children[i] = current_stmnt;
+        }
+    }
+
+    if (case_has_break && switch_node->node_type == NODE_SWITCH)
+    {
+        switch_statement_data* switch_data = (switch_statement_data*) switch_node->data;
+
+        if (switch_data->break_me == NULL)
+        {
+            tree_handle_error(node->line_no, "Failed to handle break statement inside of switch.");
+            return;
         }
     }
 }

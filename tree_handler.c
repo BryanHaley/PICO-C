@@ -612,11 +612,12 @@ node_t* create_switch_statement_node(int line_no, node_t* expr, node_t* case_blo
     return node;
 }
 
-node_t* create_fast_switch_statement_node(int line_no, char* identifier, node_t* params, node_t* case_block)
+node_t* create_fast_switch_statement_node(int line_no, char* type, char* identifier, node_t* params, node_t* case_block)
 {
     node_t* node = create_node(NODE_FAST_SWITCH, line_no);
     fast_switch_data* data = (fast_switch_data*) node->data;
 
+    data->type       = type;
     data->identifier = identifier;
     data->params     = params;
     data->case_block = case_block;

@@ -10,6 +10,9 @@ void generate_code(FILE* out, tree_t* syntax_tree)
 {
     output_file = out;
     
+    generate_node(syntax_tree->global_block);
+    fprintf(output_file, "\n");
+
     // Print utility functions at end of file for now
     FILE* util_functions = fopen("compiler_util_functions.lua", "r");
 
@@ -23,10 +26,6 @@ void generate_code(FILE* out, tree_t* syntax_tree)
 
         fprintf(output_file, "%c", (char) c);
     }
-
-    fprintf(output_file, "\n\n");
-
-    generate_node(syntax_tree->global_block);
 }
 
 void code_gen_error(int line_no, char* err)
@@ -936,7 +935,7 @@ void generate_switch_statement(node_t* node)
     // Unforuntately all "fast" methods of creating switch statements in Lua
     // rely on nested functions, which break the expected lexical scoping.
     // Breaking lexical scoping also means we can't use goto statements.
-    // For now, implement it the (horribly) slow way.
+    // C-style switch statements have to be implemented the slow way.
 
     fprintf(output_file, "-- PCC: emulated switch-case --\n");
     generate_node(data->break_me);
@@ -985,12 +984,8 @@ void generate_switch_statement(node_t* node)
         }
     }
 
-    // TODO: This is a horribly slow and nasty implementation of switch statements, but
-    // nested functions breaking lexical scoping limits my options. I will consider some
-    // sort of "simple switch" that is more limited but can be implemented using the much
-    // faster "table of functions" method. This can be done if the switch case actions are
-    // isolated in scope and break automatically, rather than the C style of an optional
-    // explicit break.
+    // NOTE: I've implemented a "fast switch" that works more like the Lua way, and can
+    // be implemented as a table of functions. See below.
 }
 
 void generate_fast_switch_statement(node_t* node)
@@ -998,19 +993,6 @@ void generate_fast_switch_statement(node_t* node)
     if (node == NULL) { return; }
 
     fast_switch_data* data = (fast_switch_data*) node->data;
-
-    // See for more information: http://lua-users.org/wiki/SwitchStatement 
-    // Ideally I would've liked to have gone with the "Simple Table of functions"
-    // method, but that breaks lexical scoping, as nested functions in Lua
-    // do not have access to variables in the scope of their enclosing
-    // functions.
-
-    // For now, I'm compromising by using the "Simple Table of functions" method to
-    // call goto statements leading to labels within the outer function, thus preserving
-    // the scope. It also allows the expected "pass-through" vs "break" behaviour of
-    // C switch statements. However, this is probably inefficient and alternate 
-    // methods will need to be investigated. Not to mention it generates a ton of tokens, 
-    // which is bad for PICO-8.
 
     fprintf(output_file, "%s = {\n", data->identifier);
 
@@ -1056,19 +1038,31 @@ void generate_fswitch_call(node_t* node)
     
     fswitch_call_data* data = (fswitch_call_data*) node->data;
 
-    fprintf(output_file, "%s[", data->identifier);
+    // TODO: Implement this in tree_checker.c
+    bool fswitch_has_default = true;
 
-    if (data->expr != NULL)
+    if (!fswitch_has_default)
     {
-        generate_node(data->expr);
+        fprintf(output_file, "%s[", data->identifier);
+        if (data->expr != NULL) { generate_node(data->expr); }
+        fprintf(output_file, "](");
+        if (data->arg_block != NULL) { generate_node(data->arg_block); }
+        fprintf(output_file, ")");
     }
 
-    fprintf(output_file, "](");
-
-    if (data->arg_block != NULL)
+    else
     {
-        generate_node(data->arg_block);
-    }
+        fprintf(output_file, "if %s[", data->identifier);
+        if (data->expr != NULL) { generate_node(data->expr); }
+        fprintf(output_file, "] then ");
 
-    fprintf(output_file, ")");
+        fprintf(output_file, "%s[", data->identifier);
+        if (data->expr != NULL) { generate_node(data->expr); }
+        fprintf(output_file, "](");
+        if (data->arg_block != NULL) { generate_node(data->arg_block); }
+
+        fprintf(output_file, "else %s[__PCC_DEFAULT](", data->identifier);
+        if (data->arg_block != NULL) { generate_node(data->arg_block); }
+        fprintf(output_file, ") end");
+    }
 }

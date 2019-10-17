@@ -39,7 +39,7 @@ node_t* create_do_while_loop_node(int line_no, node_t* stmnt_block, node_t* rel_
 node_t* create_do_until_loop_node(int line_no, node_t* stmnt_block, node_t* rel_expr);
 
 node_t* create_switch_statement_node(int line_no, node_t* expr, node_t* case_block);
-node_t* create_fast_switch_statement_node(int line_no, char* identifier, node_t* params, node_t* case_block);
+node_t* create_fast_switch_statement_node(int line_no, char* type, char* identifier, node_t* params, node_t* case_block);
 node_t* create_case_node(int line_no, node_t* expr, node_t* stmnt_block);
 node_t* create_fswitch_call_node(int line_no, char* identifier, node_t* expr, node_t* arg_block);
 

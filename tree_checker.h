@@ -42,5 +42,6 @@ void check_switch_statement(node_t* node);
 void check_fast_switch_statement(node_t* node);
 void check_case(node_t* node);
 void check_fswitch_call(node_t* node);
+void check_obj_accessor_block(node_t* node);
 
 #endif

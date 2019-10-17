@@ -27,7 +27,7 @@ FILE *yyin;
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
-%token STRUCT GLOBAL LENGTH UNARY NEW PREC_TYPE IF ELSEIF ELSE NEWLINE_SEP UNTIL FASTSWITCH
+%token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH
 
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
@@ -428,15 +428,15 @@ switch_statement
     ;
 
 fast_switch_statement
-    : FASTSWITCH IDENTIFIER '(' argument_definition_block ')' '{' case_block '}'
+    : FASTSWITCH type IDENTIFIER '(' argument_definition_block ')' '{' case_block '}'
+    {
+        $8->increase_indent = true;
+        $$ = create_fast_switch_statement_node(yylineno, $2, $3, $5, $8);
+    }
+    | FASTSWITCH type IDENTIFIER '(' ')' '{' case_block '}'
     {
         $7->increase_indent = true;
-        $$ = create_fast_switch_statement_node(yylineno, $2, $4, $7);
-    }
-    | FASTSWITCH IDENTIFIER '(' ')' '{' case_block '}'
-    {
-        $6->increase_indent = true;
-        $$ = create_fast_switch_statement_node(yylineno, $2, NULL, $6);
+        $$ = create_fast_switch_statement_node(yylineno, $2, $3, NULL, $7);
     }
     ;
 
@@ -501,26 +501,28 @@ assignment_dest
     { $$ = $1; }
     | object_access
     { $$ = $1; }
+    | IDENTIFIER
+    { $$ = create_symbol_node(yylineno, $1); }
     ;
 
 object_access
-    : IDENTIFIER
+    : IDENTIFIER '.'
     {
         node_t* object_access_block = create_node(NODE_OBJ_ACCESSOR_BLOCK, yylineno);
         node_t* symbol = create_symbol_node(yylineno, $1);
         add_child_to_parent_block(object_access_block, symbol);
         $$ = object_access_block;
     }
-    | object_access '.' IDENTIFIER
+    | object_access IDENTIFIER
     {
-        node_t* symbol = create_symbol_node(yylineno, $3);
+        node_t* symbol = create_symbol_node(yylineno, $2);
         $$ = handle_parent_block(yylineno, $1, NODE_OBJ_ACCESSOR_BLOCK, symbol);
     }
     ;
 
 method_call
-    : object_access '.' function_call
-    { $$ = create_member_func_call_node(yylineno, $1, $3); }
+    : object_access function_call
+    { $$ = handle_parent_block(yylineno, $1, NODE_OBJ_ACCESSOR_BLOCK, $2); }
     ;
 
 function_call
