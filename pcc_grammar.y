@@ -528,18 +528,26 @@ method_call
 function_call
     : IDENTIFIER '(' argument_block ')' 
     { $$ = create_func_call_node(yylineno, $1, $3); }
+    | IDENTIFIER '(' ')' 
+    { $$ = create_func_call_node(yylineno, $1, NULL); }
     ;
 
 fswitch_call
     : IDENTIFIER '[' expression ']' '(' argument_block ')' 
     { $$ = create_fswitch_call_node(yylineno, $1, $3, $6); }
+    | IDENTIFIER '[' expression ']' '(' ')' 
+    { $$ = create_fswitch_call_node(yylineno, $1, $3, NULL); }
     ;
 
 argument_block
-    : argument_block argument
-    { $$ = handle_parent_block(yylineno, $1, NODE_ARG_BLOCK, $2); }
-    | /* empty */
-    { $$ = NULL; }
+    : argument
+    {
+        node_t* arg_block = create_node(NODE_ARG_BLOCK, yylineno);
+        add_child_to_parent_block(arg_block, $1);
+        $$ = arg_block;
+    }
+    | argument_block ',' argument
+    { $$ = handle_parent_block(yylineno, $1, NODE_ARG_BLOCK, $3); }
     ;
 
 argument
@@ -698,6 +706,8 @@ expression
     | method_call
     { $$ = $1; }
     | function_call
+    { $$ = $1; }
+    | fswitch_call
     { $$ = $1; }
     | array_access
     { $$ = $1; }
