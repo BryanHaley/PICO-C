@@ -27,7 +27,7 @@ FILE *yyin;
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
-%token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH TK_NULL
+%token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH TK_NULL FUNC
 
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
@@ -755,11 +755,12 @@ literal_block
     ;
 
 type
-    : VAR { $$ = "var"; }
-    | BOOL { $$ = "bool"; }
-    | STRING { $$ = "string"; }
-    | ARRAY { $$ = "array"; }
-    | STRUCT { $$ = "struct"; }
+    : VAR        { $$ = "var"; }
+    | BOOL       { $$ = "bool"; }
+    | STRING     { $$ = "string"; }
+    | ARRAY      { $$ = "array"; }
+    | STRUCT     { $$ = "struct"; }
+    | FUNC       { $$ = "func"; }
     | IDENTIFIER { $$ = $1; }
     ;
 

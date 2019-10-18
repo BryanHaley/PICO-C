@@ -148,6 +148,10 @@ null                    { return TK_NULL; }
 Null                    { return TK_NULL; }
 NULL                    { return TK_NULL; }
 
+func                    { return FUNC; }
+Func                    { return FUNC; }
+FUNC                    { return FUNC; }
+
 L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_STRING; }
 
 {D}+                    { yylval.varValue = atoi(yytext); return LITERAL_NUM; }
