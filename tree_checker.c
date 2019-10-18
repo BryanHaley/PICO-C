@@ -329,9 +329,16 @@ void check_struct_definition(node_t* node)
 
 void check_struct_initialization(node_t* node)
 {
-    /*if (node == NULL) { return; }
+    if (node == NULL) { return; }
 
-    struct_init_data* data = (struct_init_data*) node->data;*/
+    struct_init_data* data = (struct_init_data*) node->data;
+
+    // TODO: match type to declaration
+
+    if (data->func_call != NULL)
+    {
+        check_node(data->func_call);
+    }
 
     return;
 }

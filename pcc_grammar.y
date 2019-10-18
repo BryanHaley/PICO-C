@@ -235,10 +235,10 @@ struct_member_definition
     ;
 
 struct_init
-    : type IDENTIFIER '=' NEW type
-    { $$ = create_struct_init_node(yylineno, $1, $2, $5); }
-    | IDENTIFIER '=' NEW type
-    { $$ = create_struct_init_node(yylineno, NULL, $1, $4); }
+    : NEW type
+    { $$ = create_struct_init_node(yylineno, $2, NULL); }
+    | NEW function_call
+    { $$ = create_struct_init_node(yylineno, NULL, $2); }
     ;
 
 function_def
@@ -712,6 +712,8 @@ expression
     | array_access
     { $$ = $1; }
     | object_access
+    { $$ = $1; }
+    | struct_init
     { $$ = $1; }
     | IDENTIFIER
     { $$ = create_symbol_node(yylineno, $1); }

@@ -525,7 +525,7 @@ void generate_struct_initialization(node_t* node)
     struct_init_data* data = (struct_init_data*) node->data;
 
     // TODO: don't hard-code compiler utility methods
-    fprintf(output_file, "%s = _PCC_SHALLOW_COPY(%s)", data->identifier, data->type);
+    fprintf(output_file, "_PCC_SHALLOW_COPY(%s)", data->type);
 }
 
 void generate_array_dim(node_t* node)

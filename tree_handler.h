@@ -25,7 +25,7 @@ node_t* create_array_dec_node(int line_no, char* identifier, int size, node_t* l
 node_t* create_array_dim_node(int line_no, double num);
 node_t* create_multi_dim_array_dec_node(int line_no, char* identifier, node_t* dimensions, node_t* literal_block);
 node_t* create_struct_def_node(int line_no, char* identifier, node_t* member_block);
-node_t* create_struct_init_node(int line_no, char* var_type, char* identifier, char* obj_type);
+node_t* create_struct_init_node(int line_no, char* obj_type, node_t* func_call);
 node_t* create_symbol_node(int line_no, char* identifier);
 node_t* create_member_func_call_node(int line_no, node_t* obj_access, node_t* func_call);
 

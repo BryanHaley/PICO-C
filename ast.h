@@ -212,7 +212,8 @@ typedef struct
 typedef struct
 {
     char* type;
-    char* identifier;
+    
+    node_t* func_call;
 } struct_init_data;
 
 typedef struct

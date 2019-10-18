@@ -374,12 +374,12 @@ node_t* create_struct_def_node(int line_no, char* identifier, node_t* member_blo
     return node;
 }
 
-node_t* create_struct_init_node(int line_no, char* var_type, char* identifier, char* obj_type)
+node_t* create_struct_init_node(int line_no, char* obj_type, node_t* func_call)
 {
     node_t* node = create_node(NODE_STRUCT_INIT, line_no);
     struct_init_data* data = (struct_init_data*) node->data;
 
-    if (var_type == NULL)
+    /*if (var_type == NULL)
     {
         var_type = obj_type;
     }
@@ -388,10 +388,10 @@ node_t* create_struct_init_node(int line_no, char* var_type, char* identifier, c
     {
         tree_handle_error(line_no, "Mismatch in variable and object type.");
         return NULL;
-    }
+    }*/
 
-    data->type       = var_type;
-    data->identifier = identifier;
+    data->type      = obj_type;
+    data->func_call = func_call;
 
     return node;
 }
