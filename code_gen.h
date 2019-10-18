@@ -20,6 +20,7 @@ void generate_code(FILE* out, tree_t* syntax_tree);
 void generate_node(node_t* node);
 void generate_parent_block(node_t* parent, char* delim);
 void generate_func_def(node_t* node);
+void generate_struct_constructor(node_t* node);
 void generate_func_call(node_t* node);
 void generate_arg_def_block(node_t* node);
 void generate_arg_def(node_t* node);

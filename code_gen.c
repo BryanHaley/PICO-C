@@ -85,6 +85,9 @@ void generate_node(node_t* node)
         case (NODE_FUNC_DEF):
             generate_func_def(node);
             break;
+        case (NODE_STRUCT_CONSTRUCTOR):
+            generate_struct_constructor(node);
+            break;
         case (NODE_FUNC_CALL):
             generate_func_call(node);
             break;
@@ -258,6 +261,39 @@ void generate_func_def(node_t* node)
     }
 
     fprintf(output_file, "end\n");
+}
+
+void generate_struct_constructor(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    struct_constructor_data* data = (struct_constructor_data*) node->data;
+
+    // get parent struct data
+    struct_def_data* struct_data = (struct_def_data*) node->parent->parent->data;
+
+    fprintf(output_file, "constructor = function (");
+
+    if (data->arg_def_block != NULL)
+    {
+        generate_node(data->arg_def_block);
+    }
+
+    fprintf(output_file, ")\n");
+    
+    print_indents_with_additional(1);
+    fprintf(output_file, "self = _PCC_SHALLOW_COPY(%s)\n", struct_data->identifier);
+
+    if (data->stmnt_block != NULL)
+    { 
+        generate_node(data->stmnt_block); 
+    }
+
+    print_indents_with_additional(1);
+    fprintf(output_file, "return self\n");
+
+    print_indents();
+    fprintf(output_file, "end");
 }
 
 void generate_arg_def(node_t* node)
@@ -524,8 +560,26 @@ void generate_struct_initialization(node_t* node)
 
     struct_init_data* data = (struct_init_data*) node->data;
 
-    // TODO: don't hard-code compiler utility methods
-    fprintf(output_file, "_PCC_SHALLOW_COPY(%s)", data->type);
+    if (data->func_call != NULL)
+    {
+        //generate_node(data->func_call);
+        func_call_data* func_data = (func_call_data*) data->func_call->data;
+
+        fprintf(output_file, "%s.constructor(", func_data->identifier);
+
+        if (func_data->arg_block != NULL)
+        {
+            generate_node(func_data->arg_block);
+        }
+
+        fprintf(output_file, ")");
+    }
+
+    else
+    {
+        // TODO: don't hard-code compiler utility methods
+        fprintf(output_file, "_PCC_SHALLOW_COPY(%s)", data->type);
+    }
 }
 
 void generate_array_dim(node_t* node)

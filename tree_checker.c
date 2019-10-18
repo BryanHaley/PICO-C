@@ -24,6 +24,9 @@ void check_node(node_t* node)
         case (NODE_FUNC_DEF):
             check_func_def(node);
             break;
+        case (NODE_STRUCT_CONSTRUCTOR):
+            check_struct_constructor(node);
+            break;
         case (NODE_FUNC_CALL):
             check_func_call(node);
             break;
@@ -185,6 +188,23 @@ void check_func_def(node_t* node)
     }
 }
 
+void check_struct_constructor(node_t* node)
+{
+    if (node == NULL) { return; }
+
+    struct_constructor_data* data = (struct_constructor_data*) node->data;
+
+    if (data->arg_def_block != NULL)
+    { 
+        check_node(data->arg_def_block);
+    }
+    
+    if (data->stmnt_block != NULL)
+    { 
+        check_node(data->stmnt_block); 
+    }
+}
+
 void check_arg_def(node_t* node)
 {
     /*if (node == NULL) { return; }
@@ -335,6 +355,7 @@ void check_struct_initialization(node_t* node)
 
     // TODO: match type to declaration
 
+    // TODO: match function call to constructor
     if (data->func_call != NULL)
     {
         check_node(data->func_call);

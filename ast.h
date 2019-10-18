@@ -67,6 +67,7 @@ typedef enum
     NODE_PRIMARY,
     NODE_STMNT_BLOCK,
     NODE_STRUCT_DEF,
+    NODE_STRUCT_CONSTRUCTOR,
     NODE_STRUCT_INIT,
     NODE_STRUCT_MEM_BLOCK,
     NODE_SWITCH,
@@ -348,5 +349,11 @@ typedef struct
     node_t* expr;
     node_t* arg_block;
 } fswitch_call_data;
+
+typedef struct
+{
+    node_t* arg_def_block;
+    node_t* stmnt_block;
+} struct_constructor_data;
 
 #endif

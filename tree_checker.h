@@ -9,6 +9,7 @@ void check_node(node_t* node);
 
 void check_parent_block(node_t* parent);
 void check_func_def(node_t* node);
+void check_struct_constructor(node_t* node);
 void check_arg_def(node_t* node);
 void check_func_call(node_t* node);
 void check_bin_expr(node_t* node);

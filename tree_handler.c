@@ -15,6 +15,9 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_FUNC_DEF):
             node->data = calloc(1, sizeof(func_def_data));
             break;
+        case (NODE_STRUCT_CONSTRUCTOR):
+            node->data = calloc(1, sizeof(struct_constructor_data));
+            break;
         case (NODE_FUNC_CALL):
             node->data = calloc(1, sizeof(func_call_data));
             break;
@@ -198,6 +201,20 @@ node_t* create_func_def_node(int line_no, char* return_type, char* identifier,
     data->identifier      = identifier;
     data->arg_def_block   = arg_def_block;
     data->statement_block = stmnt_block;
+
+    if (arg_def_block != NULL) { arg_def_block->parent = node; }
+    if (stmnt_block != NULL)   { stmnt_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_struct_constructor_node(int line_no, node_t* arg_def_block, node_t* stmnt_block)
+{
+    node_t* node = create_node(NODE_STRUCT_CONSTRUCTOR, line_no);
+    struct_constructor_data* data = (struct_constructor_data*) node->data;
+
+    data->arg_def_block   = arg_def_block;
+    data->stmnt_block     = stmnt_block;
 
     if (arg_def_block != NULL) { arg_def_block->parent = node; }
     if (stmnt_block != NULL)   { stmnt_block->parent = node; }

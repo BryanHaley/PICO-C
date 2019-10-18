@@ -25,7 +25,7 @@ FILE *yyin;
 %token VAR STRING BOOL ARRAY IDENTIFIER LITERAL_NUM LITERAL_STRING LITERAL_BOOL DEFAULT
 %token PLUS_EQUAL MINUS_EQUAL TIMES_EQUAL DIVIDE_EQUAL MODULO_EQUAL DO WHILE SWITCH 
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
-%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
+%token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN CONSTRUCTOR
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
 %token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH TK_NULL FUNC
 
@@ -43,7 +43,7 @@ FILE *yyin;
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
 %type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
 %type<nodeValue> return_statement continue_statement switch_statement case_block case
-%type<nodeValue> fast_switch_statement fswitch_call
+%type<nodeValue> fast_switch_statement fswitch_call struct_constructor_def
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -232,6 +232,11 @@ struct_member_definition
         $1->member = true;
         $$ = $1;
     }
+    | struct_constructor_def
+    {
+        $1->member = true;
+        $$ = $1;
+    }
     ;
 
 struct_init
@@ -251,6 +256,19 @@ function_def
     {
         $7->increase_indent = true; 
         $$ = create_func_def_node(yylineno, $1, $2, $4, $7);
+    }
+    ;
+
+struct_constructor_def
+    : CONSTRUCTOR '(' ')' '{' statement_block '}' 
+    {
+        $5->increase_indent = true; 
+        $$ = create_struct_constructor_node(yylineno, NULL, $5);
+    }
+    | CONSTRUCTOR '(' argument_definition_block ')' '{' statement_block '}' 
+    {
+        $6->increase_indent = true; 
+        $$ = create_struct_constructor_node(yylineno, $3, $6);
     }
     ;
 

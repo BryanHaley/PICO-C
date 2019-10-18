@@ -14,6 +14,7 @@ parent_block_data* add_children_to_parent_block(node_t* parent,
 void create_global_block();
 
 node_t* create_func_def_node(int line_no, char* return_type, char* identifier, node_t* arg_def_block, node_t* stmnt_block);
+node_t* create_struct_constructor_node(int line_no, node_t* arg_def_block, node_t* stmnt_block);
 node_t* create_func_call_node(int line_no, char* identifier, node_t* arg_block);
 node_t* create_arg_def_node(int line_no, char* type, char* identifier);
 node_t* create_assign_node(int line_no, node_t* dest, node_t* expr, char* op);

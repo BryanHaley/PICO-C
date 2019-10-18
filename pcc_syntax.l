@@ -152,6 +152,10 @@ func                    { return FUNC; }
 Func                    { return FUNC; }
 FUNC                    { return FUNC; }
 
+constructor             { return CONSTRUCTOR; }
+Constructor             { return CONSTRUCTOR; }
+CONSTRUCTOR             { return CONSTRUCTOR; }
+
 L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_STRING; }
 
 {D}+                    { yylval.varValue = atoi(yytext); return LITERAL_NUM; }
