@@ -102,6 +102,9 @@ node_t* create_node(node_type_e node_type, int line_no)
         case (NODE_BREAK):
             node->data = NULL;
             break;
+        case (NODE_NULL):
+            node->data = NULL;
+            break;
         case (NODE_SWITCH):
             node->data = calloc(1, sizeof(switch_statement_data));
             break;
@@ -654,6 +657,12 @@ node_t* create_case_node(int line_no, node_t* expr, node_t* stmnt_block)
     if (expr != NULL)        { expr->parent = node; }
     if (stmnt_block != NULL) { stmnt_block->parent = node; }
 
+    return node;
+}
+
+node_t* create_null_node(int line_no)
+{
+    node_t* node = create_node(NODE_NULL, line_no);
     return node;
 }
 

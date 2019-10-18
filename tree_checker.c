@@ -128,6 +128,10 @@ void check_node(node_t* node)
             break;
         case (NODE_OBJ_ACCESSOR_BLOCK):
             check_obj_accessor_block(node);
+            break;
+        case (NODE_NULL):
+            check_null(node);
+            break;
         default:
             check_parent_block(node);
             break;
@@ -729,4 +733,9 @@ void check_fswitch_call(node_t* node)
     }
 
     if (data->arg_block != NULL) { check_node(data->arg_block); }
+}
+
+void check_null(node_t* node)
+{
+    return;
 }

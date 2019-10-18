@@ -27,7 +27,7 @@ FILE *yyin;
 %token RIGHT_SHIFT_EQUAL LEFT_SHIFT_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL GOTO CONTINUE
 %token RIGHT_SHIFT LEFT_SHIFT PLUS_PLUS MINUS_MINUS LOGICAL_AND LOGICAL_OR RETURN
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
-%token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH
+%token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH TK_NULL
 
 %type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
 %type<varValue> LITERAL_NUM
@@ -709,6 +709,8 @@ expression
     { $$ = create_primary_node(yylineno, PRI_LITERAL_NUM, (void*) &$1); }
     | LITERAL_STRING
     { $$ = create_primary_node(yylineno, PRI_LITERAL_STR, (void*) $1); }
+    | TK_NULL
+    { $$ = create_null_node(yylineno); }
     ;
 
 relational_expression

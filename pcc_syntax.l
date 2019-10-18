@@ -144,6 +144,10 @@ false                   { yylval.boolValue = false; return LITERAL_BOOL; }
 False                   { yylval.boolValue = false; return LITERAL_BOOL; }
 FALSE                   { yylval.boolValue = false; return LITERAL_BOOL; }
 
+null                    { return TK_NULL; }
+Null                    { return TK_NULL; }
+NULL                    { return TK_NULL; }
+
 L?\"(\\.|[^\\"\n])*\"   { yylval.stringValue = strdup(yytext); return LITERAL_STRING; }
 
 {D}+                    { yylval.varValue = atoi(yytext); return LITERAL_NUM; }

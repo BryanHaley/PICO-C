@@ -205,6 +205,9 @@ void generate_node(node_t* node)
         case (NODE_FSWITCH_CALL):
             generate_fswitch_call(node);
             break;
+        case (NODE_NULL):
+            generate_null(node);
+            break;
         default:
             generate_parent_block(node, NULL);
             break;
@@ -1065,4 +1068,9 @@ void generate_fswitch_call(node_t* node)
         if (data->arg_block != NULL) { generate_node(data->arg_block); }
         fprintf(output_file, ") end");
     }
+}
+
+void generate_null(node_t* node)
+{
+    fprintf(output_file, "nil");
 }

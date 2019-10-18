@@ -57,6 +57,8 @@ node_t* handle_parent_block(int line_no, node_t* parent, node_type_e parent_type
 node_t* set_expr_paren(int line_no, node_t* node);
 node_t* set_expr_unary(int line_no, node_t* node, char* unary);
 
+node_t* create_null_node(int line_no);
+
 void tree_handle_error(int line_no, char* err);
 
 #endif

@@ -56,5 +56,6 @@ void generate_switch_statement(node_t* node);
 void generate_fast_switch_statement(node_t* node);
 void generate_case(node_t* node);
 void generate_fswitch_call(node_t* node);
+void generate_null(node_t* node);
 
 #endif
