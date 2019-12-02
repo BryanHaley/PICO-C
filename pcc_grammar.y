@@ -29,7 +29,7 @@ FILE *yyin;
 %token LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL_EQUAL NOT_EQUAL FOR BREAK CASE
 %token STRUCT GLOBAL LENGTH UNARY NEW IF ELSEIF ELSE UNTIL FASTSWITCH TK_NULL FUNC
 
-%type<stringValue> IDENTIFIER LITERAL_STRING type unary_operator
+%type<stringValue> IDENTIFIER LITERAL_STRING unary_operator
 %type<varValue> LITERAL_NUM
 %type<boolValue> LITERAL_BOOL
 %type<nodeValue> function_def function_call argument_defintion assignment break_statement
@@ -43,7 +43,7 @@ FILE *yyin;
 %type<nodeValue> if_statement elseif_statement_block elseif_statement else_statement
 %type<nodeValue> for_loop for_assign for_inc do_while_loop while_loop label_maker
 %type<nodeValue> return_statement continue_statement switch_statement case_block case
-%type<nodeValue> fast_switch_statement fswitch_call struct_constructor_def
+%type<nodeValue> fast_switch_statement fswitch_call struct_constructor_def symbol type
 
 %nonassoc NO_ELSE
 %nonassoc ELSEIF_NO_ELSE
@@ -203,7 +203,7 @@ statement_opt_braces
     ;
 
 struct_definition
-    : STRUCT IDENTIFIER '{' struct_member_definition_block '}'
+    : STRUCT symbol '{' struct_member_definition_block '}'
     {
         $4->increase_indent = true;
         $$ = create_struct_def_node(yylineno, $2, $4);
@@ -247,12 +247,12 @@ struct_init
     ;
 
 function_def
-    : type IDENTIFIER '(' ')' '{' statement_block '}' 
+    : type symbol '(' ')' '{' statement_block '}' 
     {
         $6->increase_indent = true; 
         $$ = create_func_def_node(yylineno, $1, $2, NULL, $6);
     }
-    | type IDENTIFIER '(' argument_definition_block ')' '{' statement_block '}' 
+    | type symbol '(' argument_definition_block ')' '{' statement_block '}' 
     {
         $7->increase_indent = true; 
         $$ = create_func_def_node(yylineno, $1, $2, $4, $7);
@@ -284,7 +284,7 @@ argument_definition_block
     ;
 
 argument_defintion
-    : type IDENTIFIER
+    : type symbol
     { $$ = create_arg_def_node(yylineno, $1, $2); }
     ;
 
@@ -411,12 +411,12 @@ statement
     ;
 
 label_maker
-    : IDENTIFIER ':'
+    : symbol ':'
     { $$ = create_labelmaker_node(yylineno, $1); }
     ;
 
 goto_statement
-    : GOTO IDENTIFIER
+    : GOTO symbol
     { $$ = create_goto_statement_node(yylineno, $2); }
     ;
 
@@ -446,12 +446,12 @@ switch_statement
     ;
 
 fast_switch_statement
-    : FASTSWITCH type IDENTIFIER '(' argument_definition_block ')' '{' case_block '}'
+    : FASTSWITCH type symbol '(' argument_definition_block ')' '{' case_block '}'
     {
         $8->increase_indent = true;
         $$ = create_fast_switch_statement_node(yylineno, $2, $3, $5, $8);
     }
-    | FASTSWITCH type IDENTIFIER '(' ')' '{' case_block '}'
+    | FASTSWITCH type symbol '(' ')' '{' case_block '}'
     {
         $7->increase_indent = true;
         $$ = create_fast_switch_statement_node(yylineno, $2, $3, NULL, $7);
@@ -483,9 +483,9 @@ case
     ;
 
 postfix
-    : IDENTIFIER PLUS_PLUS
+    : symbol PLUS_PLUS
     { $$ = create_postfix_node(yylineno, $1, "++"); }
-    | IDENTIFIER MINUS_MINUS
+    | symbol MINUS_MINUS
     { $$ = create_postfix_node(yylineno, $1, "--"); }
     ;
 
@@ -519,22 +519,20 @@ assignment_dest
     { $$ = $1; }
     | object_access
     { $$ = $1; }
-    | IDENTIFIER
-    { $$ = create_symbol_node(yylineno, $1); }
+    | symbol
+    { $$ = $1; }
     ;
 
 object_access
-    : IDENTIFIER '.'
+    : symbol '.'
     {
         node_t* object_access_block = create_node(NODE_OBJ_ACCESSOR_BLOCK, yylineno);
-        node_t* symbol = create_symbol_node(yylineno, $1);
-        add_child_to_parent_block(object_access_block, symbol);
+        add_child_to_parent_block(object_access_block, $1);
         $$ = object_access_block;
     }
-    | object_access IDENTIFIER
+    | object_access symbol
     {
-        node_t* symbol = create_symbol_node(yylineno, $2);
-        $$ = handle_parent_block(yylineno, $1, NODE_OBJ_ACCESSOR_BLOCK, symbol);
+        $$ = handle_parent_block(yylineno, $1, NODE_OBJ_ACCESSOR_BLOCK, $2);
     }
     ;
 
@@ -544,16 +542,16 @@ method_call
     ;
 
 function_call
-    : IDENTIFIER '(' argument_block ')' 
+    : symbol '(' argument_block ')' 
     { $$ = create_func_call_node(yylineno, $1, $3); }
-    | IDENTIFIER '(' ')' 
+    | symbol '(' ')' 
     { $$ = create_func_call_node(yylineno, $1, NULL); }
     ;
 
 fswitch_call
-    : IDENTIFIER '[' expression ']' '(' argument_block ')' 
+    : symbol '[' expression ']' '(' argument_block ')' 
     { $$ = create_fswitch_call_node(yylineno, $1, $3, $6); }
-    | IDENTIFIER '[' expression ']' '(' ')' 
+    | symbol '[' expression ']' '(' ')' 
     { $$ = create_fswitch_call_node(yylineno, $1, $3, NULL); }
     ;
 
@@ -576,33 +574,33 @@ argument
     ;
 
 array_declaration
-    : ARRAY IDENTIFIER '[' ']' '=' '{' '}'
+    : ARRAY symbol '[' ']' '=' '{' '}'
     { $$ = create_array_dec_node(yylineno, $2, 0, NULL); }
-    | ARRAY IDENTIFIER '[' ']' '=' '{' literal_block '}'
+    | ARRAY symbol '[' ']' '=' '{' literal_block '}'
     { $$ = create_array_dec_node(yylineno, $2, 0, $7); }
-    | ARRAY IDENTIFIER '[' LITERAL_NUM ']' '=' '{' literal_block '}'
+    | ARRAY symbol '[' LITERAL_NUM ']' '=' '{' literal_block '}'
     { $$ = create_array_dec_node(yylineno, $2, (int) $4, $8); }
-    | ARRAY IDENTIFIER '[' ']'
+    | ARRAY symbol '[' ']'
     { $$ = create_array_dec_node(yylineno, $2, 0, NULL); }
-    | GLOBAL ARRAY IDENTIFIER '[' ']' '=' '{' '}'
+    | GLOBAL ARRAY symbol '[' ']' '=' '{' '}'
     { 
         node_t* node = create_array_dec_node(yylineno, $3, 0, NULL);
         node->global = true;
         $$ = node;
     }
-    | GLOBAL ARRAY IDENTIFIER '[' ']' '=' '{' literal_block '}'
+    | GLOBAL ARRAY symbol '[' ']' '=' '{' literal_block '}'
     {
         node_t* node = create_array_dec_node(yylineno, $3, 0, $8);
         node->global = true;
         $$ = node;
     }
-    | GLOBAL ARRAY IDENTIFIER '[' LITERAL_NUM ']' '=' '{' literal_block '}'
+    | GLOBAL ARRAY symbol '[' LITERAL_NUM ']' '=' '{' literal_block '}'
     {
         node_t* node = create_array_dec_node(yylineno, $3, (int) $5, $9);
         node->global = true;
         $$ = node;
     }
-    | GLOBAL ARRAY IDENTIFIER '[' ']'
+    | GLOBAL ARRAY symbol '[' ']'
     {
         node_t* node = create_array_dec_node(yylineno, $3, 0, NULL);
         node->global = true;
@@ -611,23 +609,23 @@ array_declaration
     ;
 
 multi_dim_array_declaration
-    : ARRAY IDENTIFIER array_dimension_block '=' '{' '}'
+    : ARRAY symbol array_dimension_block '=' '{' '}'
     { $$ = create_multi_dim_array_dec_node(yylineno, $2, $3, NULL); }
-    | ARRAY IDENTIFIER array_dimension_block '=' '{' literal_block '}'
+    | ARRAY symbol array_dimension_block '=' '{' literal_block '}'
     { $$ = create_multi_dim_array_dec_node(yylineno, $2, $3, $6); }
-    | GLOBAL ARRAY IDENTIFIER array_dimension_block '=' '{' '}'
+    | GLOBAL ARRAY symbol array_dimension_block '=' '{' '}'
     {
         node_t* node = create_multi_dim_array_dec_node(yylineno, $3, $4, NULL);
         node->global = true;
         $$ = node;
     }
-    | GLOBAL ARRAY IDENTIFIER array_dimension_block '=' '{' literal_block '}'
+    | GLOBAL ARRAY symbol array_dimension_block '=' '{' literal_block '}'
     {
         node_t* node = create_multi_dim_array_dec_node(yylineno, $3, $4, $7);
         node->global = true;
         $$ = node;
     }
-    | ARRAY IDENTIFIER array_dimension_block
+    | ARRAY symbol array_dimension_block
     { $$ = create_multi_dim_array_dec_node(yylineno, $2, $3, NULL); }
     ;
 
@@ -648,7 +646,7 @@ array_dimension
     ;
 
 array_access
-    : IDENTIFIER array_multi_access
+    : symbol array_multi_access
     { $$ = create_array_access_node(yylineno, $1, $2); }
     ;
 
@@ -669,9 +667,9 @@ array_accessor
     ;
 
 declaration
-    : type IDENTIFIER
+    : type symbol
     { $$ = create_declaration_node(yylineno, $1, $2); }
-    | GLOBAL type IDENTIFIER
+    | GLOBAL type symbol
     {
         node_t* node = create_declaration_node(yylineno, $2, $3);
         node->global = true;
@@ -680,9 +678,9 @@ declaration
     ;
 
 declaration_with_assign
-    : type IDENTIFIER '=' expression
+    : type symbol '=' expression
     { $$ = create_declaration_with_assign_node(yylineno, $1, $2, $4); }
-    | GLOBAL type IDENTIFIER '=' expression
+    | GLOBAL type symbol '=' expression
     {
         node_t* node = create_declaration_with_assign_node(yylineno, $2, $3, $5);
         node->global = true;
@@ -733,8 +731,8 @@ expression
     { $$ = $1; }
     | struct_init
     { $$ = $1; }
-    | IDENTIFIER
-    { $$ = create_symbol_node(yylineno, $1); }
+    | symbol
+    { $$ = $1; }
     | LITERAL_NUM
     { $$ = create_primary_node(yylineno, PRI_LITERAL_NUM, (void*) &$1); }
     | LITERAL_STRING
@@ -785,13 +783,25 @@ literal_block
     ;
 
 type
-    : VAR        { $$ = "var"; }
-    | BOOL       { $$ = "bool"; }
-    | STRING     { $$ = "string"; }
-    | ARRAY      { $$ = "array"; }
-    | STRUCT     { $$ = "struct"; }
-    | FUNC       { $$ = "func"; }
-    | IDENTIFIER { $$ = $1; }
+    : VAR
+    { $$ = create_type_symbol_node(yylineno, "var"); }
+    | BOOL
+    { $$ = create_type_symbol_node(yylineno, "bool"); }
+    | STRING
+    { $$ = create_type_symbol_node(yylineno, "string"); }
+    | ARRAY
+    { $$ = create_type_symbol_node(yylineno, "array"); }
+    | STRUCT
+    { $$ = create_type_symbol_node(yylineno, "struct"); }
+    | FUNC
+    { $$ = create_type_symbol_node(yylineno, "func"); }
+    | symbol
+    { $$ = $1; }
+    ;
+
+symbol
+    : IDENTIFIER
+    { $$ = create_symbol_node(yylineno, $1); }
     ;
 
 unary_operator

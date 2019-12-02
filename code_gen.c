@@ -246,7 +246,9 @@ void generate_func_def(node_t* node)
 
     func_def_data* data = (func_def_data*) node->data;
 
-    fprintf(output_file, "function %s (", data->identifier);
+    fprintf(output_file, "function ");
+    generate_node(data->identifier);
+    fprintf(output_file, " (");
 
     if (data->arg_def_block != NULL)
     { 
@@ -282,7 +284,9 @@ void generate_struct_constructor(node_t* node)
     fprintf(output_file, ")\n");
     
     print_indents_with_additional(1);
-    fprintf(output_file, "self = _PCC_SHALLOW_COPY(%s)\n", struct_data->identifier);
+    fprintf(output_file, "self = _PCC_SHALLOW_COPY(");
+    generate_node(struct_data->identifier);
+    fprintf(output_file, ")\n");
 
     if (data->stmnt_block != NULL)
     { 
@@ -302,7 +306,7 @@ void generate_arg_def(node_t* node)
     
     arg_def_data* data = (arg_def_data*) node->data;
 
-    fprintf(output_file, "%s", data->identifier);
+    generate_node(data->identifier);
 }
 
 void generate_func_call(node_t* node)
@@ -311,7 +315,8 @@ void generate_func_call(node_t* node)
     
     func_call_data* data = (func_call_data*) node->data;
 
-    fprintf(output_file, "%s(", data->identifier);
+    generate_node(data->identifier);
+    fprintf(output_file, "(");
 
     if (data->arg_block != NULL)
     {
@@ -385,8 +390,9 @@ void generate_declaration(node_t* node)
     if (node == NULL) { return; }
 
     declaration_data* data = (declaration_data*) node->data;
+    symbol_data* type_data = (symbol_data*) data->type->data;
 
-    if (strcmp(data->type, "array") == 0)
+    if (strcmp(type_data->identifier, "array") == 0)
     {
         code_gen_error(node->line_no, "Array must be declared using brackets [].");
         return;
@@ -398,13 +404,13 @@ void generate_declaration(node_t* node)
         else              { fprintf(output_file, "local ");  }
     }
 
-    fprintf(output_file, "%s", data->identifier);
+    generate_node(data->identifier);
 
-    if (strcmp(data->type, "var") == 0)
+    if (strcmp(type_data->identifier, "var") == 0)
     { fprintf(output_file, " = 0"); }
-    else if (strcmp(data->type, "string") == 0)
+    else if (strcmp(type_data->identifier, "string") == 0)
     { fprintf(output_file, " = \"\""); }
-    else if (strcmp(data->type, "bool") == 0)
+    else if (strcmp(type_data->identifier, "bool") == 0)
     { fprintf(output_file, " = false"); }
     else
     { fprintf(output_file, " = nil"); }
@@ -422,7 +428,8 @@ void generate_declaration_with_assign(node_t* node)
         else              { fprintf(output_file, "local ");  }
     }
 
-    fprintf(output_file, "%s = ", data->identifier);
+    generate_node(data->identifier);
+    fprintf(output_file, " = ");
 
     generate_node(data->expr);
 }
@@ -433,7 +440,8 @@ void generate_postfix(node_t* node)
 
     postfix_data* data = (postfix_data*) node->data;
 
-    fprintf(output_file, "%s%s", data->identifier, data->op);
+    generate_node(data->identifier);
+    fprintf(output_file, "%s", data->op);
 }
 
 void generate_array_access(node_t* node)
@@ -442,7 +450,7 @@ void generate_array_access(node_t* node)
 
     array_access_data* data = (array_access_data*) node->data;
 
-    fprintf(output_file, "%s", data->identifier);
+    generate_node(data->identifier);
 
     /* TODO: Figure out if I only want to allow 'sane' indices or not.
      *       i.e. only allow indexes of 0 to n, as opposed to an associative array.
@@ -490,7 +498,7 @@ void generate_array_declaration(node_t* node)
         else              { fprintf(output_file, "local ");  }
     }
 
-    fprintf(output_file, "%s", data->identifier);
+    generate_node(data->identifier);
 
     if (data->size > 0 && has_literal_block)
     {
@@ -525,13 +533,13 @@ void generate_array_declaration(node_t* node)
             fprintf(output_file, "%sfor %s=%d, %d do\n",
                     INDENT_TOKEN, loop_index, 0, data->size);
 
-            fprintf(output_file, "%s%s%s[%s] = ",
-                    INDENT_TOKEN, INDENT_TOKEN, data->identifier, loop_index);
+            fprintf(output_file, "%s%s", INDENT_TOKEN, INDENT_TOKEN);
+            generate_node(data->identifier);
+            fprintf(output_file, "[%s] = ", loop_index);
 
             generate_node(litbl_data->children[0]);
             
-            fprintf(output_file, "\n%send",
-                    INDENT_TOKEN);
+            fprintf(output_file, "\n%send", INDENT_TOKEN);
         }
     }
 
@@ -547,7 +555,8 @@ void generate_struct_definition(node_t* node)
 
     struct_def_data* data = (struct_def_data*) node->data;
 
-    fprintf(output_file, "%s = {\n", data->identifier);
+    generate_node(data->identifier);
+    fprintf(output_file, " = {\n");
 
     generate_node(data->member_block);
 
@@ -559,13 +568,15 @@ void generate_struct_initialization(node_t* node)
     if (node == NULL) { return; }
 
     struct_init_data* data = (struct_init_data*) node->data;
+    symbol_data* type_data = (symbol_data*) data->type->data;
 
     if (data->func_call != NULL)
     {
         //generate_node(data->func_call);
         func_call_data* func_data = (func_call_data*) data->func_call->data;
 
-        fprintf(output_file, "%s.constructor(", func_data->identifier);
+        generate_node(func_data->identifier);
+        fprintf(output_file, ".constructor(");
 
         if (func_data->arg_block != NULL)
         {
@@ -578,7 +589,7 @@ void generate_struct_initialization(node_t* node)
     else
     {
         // TODO: don't hard-code compiler utility methods
-        fprintf(output_file, "_PCC_SHALLOW_COPY(%s)", data->type);
+        fprintf(output_file, "_PCC_SHALLOW_COPY(%s)", type_data->identifier);
     }
 }
 
@@ -607,7 +618,8 @@ void generate_mutli_dim_array_dec(node_t* node)
     }
 
     // TODO: don't hard-code compiler utility methods
-    fprintf(output_file, "%s = _PCC_NEW_MULTI_DIM_ARRAY(%d)", data->identifier, num_dimensions);
+    fprintf(output_file, " = _PCC_NEW_MULTI_DIM_ARRAY(%d)", num_dimensions);
+    generate_node(data->identifier);
 
     /* TODO: generate for loops for setting initial value */
 }
@@ -791,7 +803,9 @@ void generate_for_loop(node_t* node)
             print_indents();
             fprintf(output_file, "-- PCC: continue statement label --\n");
             print_indents_with_additional(1);
-            fprintf(output_file, "::%s::\n", continue_data->identifier);
+            fprintf(output_file, "::");
+            generate_node(continue_data->identifier);
+            fprintf(output_file, "::\n");
         }
 
         print_indents();
@@ -841,7 +855,9 @@ void generate_for_loop(node_t* node)
             print_indents();
             fprintf(output_file, "-- PCC: continue statement label --\n");
             print_indents_with_additional(1);
-            fprintf(output_file, "::%s::\n", continue_data->identifier);
+            fprintf(output_file, "::");
+            generate_node(continue_data->identifier);
+            fprintf(output_file, "::\n");
         }
 
         print_indents();
@@ -867,7 +883,9 @@ void generate_while_loop(node_t* node)
         continue_statement_data* continue_data = (continue_statement_data*) data->continue_statement->data;
         fprintf(output_file, "-- PCC: continue statement label --\n");
         print_indents();
-        fprintf(output_file, "::%s::\n", continue_data->identifier);
+        fprintf(output_file, "::");
+        generate_node(continue_data->identifier);
+        fprintf(output_file, "::\n");
         print_indents();
     }
 
@@ -901,7 +919,9 @@ void generate_do_while_loop(node_t* node)
         print_indents();
         fprintf(output_file, "-- PCC: continue statement label --\n");
         print_indents_with_additional(1);
-        fprintf(output_file, "::%s::\n", continue_data->identifier);
+        fprintf(output_file, "::");
+        generate_node(continue_data->identifier);
+        fprintf(output_file, "::\n");
     }
 
     print_indents();
@@ -930,7 +950,9 @@ void generate_do_until_loop(node_t* node)
         print_indents();
         fprintf(output_file, "-- PCC: continue statement label --\n");
         print_indents_with_additional(1);
-        fprintf(output_file, "::%s::\n", continue_data->identifier);
+        fprintf(output_file, "::");
+        generate_node(continue_data->identifier);
+        fprintf(output_file, "::\n");
     }
 
     print_indents();
@@ -944,7 +966,9 @@ void generate_labelmaker(node_t* node)
 
     labelmaker_data* data = (labelmaker_data*) node->data;
 
-    fprintf(output_file, "::%s::", data->identifier);
+    fprintf(output_file, "::");
+    generate_node(data->identifier);
+    fprintf(output_file, "::\n");
 }
 
 void generate_goto_statement(node_t* node)
@@ -953,7 +977,8 @@ void generate_goto_statement(node_t* node)
 
     goto_statement_data* data = (goto_statement_data*) node->data;
 
-    fprintf(output_file, "goto %s", data->identifier);
+    fprintf(output_file, "goto ");
+    generate_node(data->identifier);
 }
 
 void generate_break_statement(node_t* node)
@@ -980,7 +1005,8 @@ void generate_continue_statement(node_t* node)
 
     continue_statement_data* data = (continue_statement_data*) node->data;
 
-    fprintf(output_file, "goto %s", data->identifier);
+    fprintf(output_file, "goto ");
+    generate_node(data->identifier);
 }
 
 void generate_switch_statement(node_t* node)
@@ -1010,16 +1036,20 @@ void generate_switch_statement(node_t* node)
         {
             fprintf(output_file, "\n");
             print_indents();
-            fprintf(output_file, "if ((%s) or (", break_me_data->identifier);
+            fprintf(output_file, "if ((");
+            generate_node(break_me_data->identifier);
+            fprintf(output_file, ") or (");
             generate_node(data->expr);
             fprintf(output_file, " == ");
             generate_node(current_case_data->expr);
             fprintf(output_file, ")) then\n");
 
             print_indents_with_additional(1);
-            fprintf(output_file, "%s = true\n", break_me_data->identifier);
+            generate_node(break_me_data->identifier);
+            fprintf(output_file, " = true\n");
             print_indents_with_additional(1);
-            fprintf(output_file, "%s = false\n", default_bool_data->identifier);
+            generate_node(default_bool_data->identifier);
+            fprintf(output_file, " = false\n");
 
             generate_node(current_case_data->stmnt_block);
             
@@ -1032,7 +1062,11 @@ void generate_switch_statement(node_t* node)
         {
             fprintf(output_file, "\n");
             print_indents();
-            fprintf(output_file, "if (%s or %s) then\n", break_me_data->identifier, default_bool_data->identifier);
+            fprintf(output_file, "if (");
+            generate_node(break_me_data->identifier);
+            fprintf(output_file, " or ");
+            generate_node(default_bool_data->identifier);
+            fprintf(output_file, ") then\n");
 
             generate_node(current_case_data->stmnt_block);
             
@@ -1051,7 +1085,8 @@ void generate_fast_switch_statement(node_t* node)
 
     fast_switch_data* data = (fast_switch_data*) node->data;
 
-    fprintf(output_file, "%s = {\n", data->identifier);
+    generate_node(data->identifier);
+    fprintf(output_file, " = {\n");
 
     generate_node(data->case_block);
 
@@ -1100,7 +1135,8 @@ void generate_fswitch_call(node_t* node)
 
     if (!fswitch_has_default)
     {
-        fprintf(output_file, "%s[", data->identifier);
+        generate_node(data->identifier);
+        fprintf(output_file, "[");
         if (data->expr != NULL) { generate_node(data->expr); }
         fprintf(output_file, "](");
         if (data->arg_block != NULL) { generate_node(data->arg_block); }
@@ -1109,16 +1145,21 @@ void generate_fswitch_call(node_t* node)
 
     else
     {
-        fprintf(output_file, "if %s[", data->identifier);
+        fprintf(output_file, "if ");
+        generate_node(data->identifier);
+        fprintf(output_file, "[");
         if (data->expr != NULL) { generate_node(data->expr); }
         fprintf(output_file, "] then ");
 
-        fprintf(output_file, "%s[", data->identifier);
+        generate_node(data->identifier);
+        fprintf(output_file, "[");
         if (data->expr != NULL) { generate_node(data->expr); }
         fprintf(output_file, "](");
         if (data->arg_block != NULL) { generate_node(data->arg_block); }
 
-        fprintf(output_file, "else %s[__PCC_DEFAULT](", data->identifier);
+        fprintf(output_file, "else ");
+        generate_node(data->identifier);
+        fprintf(output_file, "[__PCC_DEFAULT](");
         if (data->arg_block != NULL) { generate_node(data->arg_block); }
         fprintf(output_file, ") end");
     }

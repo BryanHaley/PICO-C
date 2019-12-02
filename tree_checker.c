@@ -591,7 +591,8 @@ void check_continue_statement(node_t* node)
     // Create a unique identifier for the continue label. This will be used to generate
     // unique "goto" statements
     continue_statement_data* continue_data = (continue_statement_data*) node->data;
-    continue_data->identifier = get_unique_name_with_prefix("_PCC_CONTINUE_");
+    symbol_data* sym_data = (symbol_data*) continue_data->identifier->data;
+    sym_data->identifier = get_unique_name_with_prefix("_PCC_CONTINUE_");
 }
 
 void check_switch_statement(node_t* node)
@@ -602,7 +603,7 @@ void check_switch_statement(node_t* node)
     
     // Need to generate bool variable node for use with break statements inside switch
     // Do this BEFORE checking the case_block
-    data->break_me = create_declaration_node(node->line_no, "bool", get_unique_name_with_prefix("_PCC_NO_BREAK_BOOL_"));
+    data->break_me = create_declaration_node(node->line_no, create_type_symbol_node(node->line_no, "bool"), create_symbol_node(node->line_no, get_unique_name_with_prefix("_PCC_NO_BREAK_BOOL_")));
     data->break_me->end_line = true;
 
     if (data->expr != NULL)       { check_node(data->expr); }
@@ -613,7 +614,7 @@ void check_switch_statement(node_t* node)
         bool expr_true_val = true;
         node_t* expr_true = create_primary_node(node->line_no, PRI_LITERAL_BOOL, (void*) &expr_true_val);
             
-        data->default_bool = create_declaration_with_assign_node(node->line_no, "bool", get_unique_name_with_prefix("_PCC_DEFAULT_"), expr_true);
+        data->default_bool = create_declaration_with_assign_node(node->line_no, create_type_symbol_node(node->line_no, "bool"), create_symbol_node(node->line_no, get_unique_name_with_prefix("_PCC_DEFAULT_")), expr_true);
         data->default_bool->end_line = true;
     }
 
@@ -719,7 +720,7 @@ void check_case(node_t* node)
 
                 bool expr_false_val = false;
                 node_t* expr_false = create_primary_node(node->line_no, PRI_LITERAL_BOOL, (void*) &expr_false_val);
-                node_t* symbol = create_symbol_node(node->line_no, break_me_data->identifier);
+                node_t* symbol = break_me_data->identifier;
                 current_stmnt = create_assign_node(node->line_no, symbol, expr_false, "=");
                 current_stmnt->end_line = true;
             }

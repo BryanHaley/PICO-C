@@ -123,22 +123,22 @@ typedef struct
 
 typedef struct 
 {
-    char* return_type;
-    char* identifier;
+    node_t* return_type;
+    node_t* identifier;
     node_t* arg_def_block;
     node_t* statement_block;
 } func_def_data;
 
 typedef struct 
 {
-    char* identifier;
+    node_t* identifier;
     node_t* arg_block;
 } func_call_data;
 
 typedef struct 
 {
-    char* type;
-    char* identifier;
+    node_t* type;
+    node_t* identifier;
 } arg_def_data;
 
 typedef struct 
@@ -150,14 +150,14 @@ typedef struct
 
 typedef struct 
 {
-    char* type;
-    char* identifier;
+    node_t* type;
+    node_t* identifier;
 } declaration_data;
 
 typedef struct 
 {
-    char* type;
-    char* identifier;
+    node_t* type;
+    node_t* identifier;
     node_t* expr;
 } declaration_with_assign_data;
 
@@ -182,13 +182,13 @@ typedef struct
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
     char* op;
 } postfix_data;
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
     node_t* accessors;
 } array_access_data;
 
@@ -199,20 +199,20 @@ typedef struct
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
     int size;
     node_t* literal_block;
 } array_dec_data;
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
     node_t* member_block;
 } struct_def_data;
 
 typedef struct
 {
-    char* type;
+    node_t* type;
     
     node_t* func_call;
 } struct_init_data;
@@ -224,7 +224,7 @@ typedef struct
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
     node_t* dimensions;
     node_t* literal_block;
 } array_multidim_dec_data;
@@ -232,6 +232,7 @@ typedef struct
 typedef struct
 {
     char* identifier;
+    bool is_type;
 } symbol_data;
 
 typedef struct
@@ -295,17 +296,17 @@ typedef struct
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
 } labelmaker_data;
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
 } continue_statement_data;
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
 } goto_statement_data;
 
 typedef struct
@@ -326,8 +327,8 @@ typedef struct
 
 typedef struct
 {
-    char* type;
-    char* identifier;
+    node_t* type;
+    node_t* identifier;
 
     node_t* params;
     node_t* case_block;
@@ -345,7 +346,7 @@ typedef struct
 
 typedef struct
 {
-    char* identifier;
+    node_t* identifier;
     node_t* expr;
     node_t* arg_block;
 } fswitch_call_data;

@@ -191,7 +191,7 @@ void create_global_block()
     syntax_tree->global_block = global_block;
 }
 
-node_t* create_func_def_node(int line_no, char* return_type, char* identifier,
+node_t* create_func_def_node(int line_no, node_t* return_type, node_t* identifier,
                              node_t* arg_def_block, node_t* stmnt_block)
 {
     node_t* node = create_node(NODE_FUNC_DEF, line_no);
@@ -222,7 +222,7 @@ node_t* create_struct_constructor_node(int line_no, node_t* arg_def_block, node_
     return node;
 }
 
-node_t* create_func_call_node(int line_no, char* identifier, node_t* arg_block)
+node_t* create_func_call_node(int line_no, node_t* identifier, node_t* arg_block)
 {
     node_t* node = create_node(NODE_FUNC_CALL, line_no);
     func_call_data* data = (func_call_data*) node->data;
@@ -235,7 +235,7 @@ node_t* create_func_call_node(int line_no, char* identifier, node_t* arg_block)
     return node;
 }
 
-node_t* create_arg_def_node(int line_no, char* type, char* identifier)
+node_t* create_arg_def_node(int line_no, node_t* type, node_t* identifier)
 {
     node_t* node = create_node(NODE_ARG_DEF, line_no);
     arg_def_data* data = (arg_def_data*) node->data;
@@ -261,7 +261,7 @@ node_t* create_assign_node(int line_no, node_t* dest, node_t* expr, char* op)
     return node;
 }
 
-node_t* create_declaration_node(int line_no, char* type, char* identifier)
+node_t* create_declaration_node(int line_no, node_t* type, node_t* identifier)
 {
     node_t* node = create_node(NODE_DEC, line_no);
     declaration_data* data = (declaration_data*) node->data;
@@ -272,7 +272,7 @@ node_t* create_declaration_node(int line_no, char* type, char* identifier)
     return node;
 }
 
-node_t* create_declaration_with_assign_node(int line_no, char* type, char* identifier,
+node_t* create_declaration_with_assign_node(int line_no, node_t* type, node_t* identifier,
                                             node_t* expr)
 {
     node_t* node = create_node(NODE_DEC_W_ASSIGN, line_no);
@@ -287,7 +287,7 @@ node_t* create_declaration_with_assign_node(int line_no, char* type, char* ident
     return node;
 }
 
-node_t* create_array_access_node(int line_no, char* identifier, node_t* accessors)
+node_t* create_array_access_node(int line_no, node_t* identifier, node_t* accessors)
 {
     node_t* node = create_node(NODE_ARR_ACCESS, line_no);
     array_access_data* data = (array_access_data*) node->data;
@@ -312,7 +312,7 @@ node_t* create_array_accessor_node(int line_no, node_t* expr)
     return node;
 }
 
-node_t* create_array_dec_node(int line_no, char* identifier, int size, node_t* literal_block)
+node_t* create_array_dec_node(int line_no, node_t* identifier, int size, node_t* literal_block)
 {
     node_t* node = create_node(NODE_ARR_DEC, line_no);
     array_dec_data* data = (array_dec_data*) node->data;
@@ -367,7 +367,7 @@ node_t* create_primary_node(int line_no, primary_type_e val_type, void* val)
     return node;
 }
 
-node_t* create_postfix_node(int line_no, char* identifier, char* op)
+node_t* create_postfix_node(int line_no, node_t* identifier, char* op)
 {
     node_t* node = create_node(NODE_POSTFIX, line_no);
     postfix_data* data = (postfix_data*) node->data;
@@ -378,7 +378,7 @@ node_t* create_postfix_node(int line_no, char* identifier, char* op)
     return node;
 }
 
-node_t* create_struct_def_node(int line_no, char* identifier, node_t* member_block)
+node_t* create_struct_def_node(int line_no, node_t* identifier, node_t* member_block)
 {
     node_t* node = create_node(NODE_STRUCT_DEF, line_no);
     struct_def_data* data = (struct_def_data*) node->data;
@@ -391,21 +391,16 @@ node_t* create_struct_def_node(int line_no, char* identifier, node_t* member_blo
     return node;
 }
 
-node_t* create_struct_init_node(int line_no, char* obj_type, node_t* func_call)
+node_t* create_struct_init_node(int line_no, node_t* obj_type, node_t* func_call)
 {
     node_t* node = create_node(NODE_STRUCT_INIT, line_no);
     struct_init_data* data = (struct_init_data*) node->data;
 
-    /*if (var_type == NULL)
+    if (obj_type == NULL)
     {
-        var_type = obj_type;
+        func_call_data* func_data = (func_call_data*) func_call->data;
+        obj_type = func_data->identifier;
     }
-
-    else if (strcmp(var_type, obj_type) != 0)
-    {
-        tree_handle_error(line_no, "Mismatch in variable and object type.");
-        return NULL;
-    }*/
 
     data->type      = obj_type;
     data->func_call = func_call;
@@ -429,7 +424,7 @@ node_t* create_array_dim_node(int line_no, double num)
     return node;
 }
 
-node_t* create_multi_dim_array_dec_node(int line_no, char* identifier, node_t* dimensions,
+node_t* create_multi_dim_array_dec_node(int line_no, node_t* identifier, node_t* dimensions,
                                         node_t* literal_block)
 {
     node_t* node = create_node(NODE_ARR_MULTI_DIM_DEC, line_no);
@@ -441,6 +436,16 @@ node_t* create_multi_dim_array_dec_node(int line_no, char* identifier, node_t* d
 
     if (dimensions != NULL)    { dimensions->parent = node; }
     if (literal_block != NULL) { literal_block->parent = node; }
+
+    return node;
+}
+
+node_t* create_type_symbol_node(int line_no, char* identifier)
+{
+    node_t* node = create_symbol_node(line_no, identifier);
+    symbol_data* data = (symbol_data*) node->data;
+
+    data->is_type = true;
 
     return node;
 }
@@ -574,7 +579,7 @@ node_t* create_do_until_loop_node(int line_no, node_t* stmnt_block, node_t* rel_
     return node;
 }
 
-node_t* create_labelmaker_node(int line_no, char* identifier)
+node_t* create_labelmaker_node(int line_no, node_t* identifier)
 {
     node_t* node = create_node(NODE_LABELMAKER, line_no);
     labelmaker_data* data = (labelmaker_data*) node->data;
@@ -584,7 +589,7 @@ node_t* create_labelmaker_node(int line_no, char* identifier)
     return node;
 }
 
-node_t* create_goto_statement_node(int line_no, char* identifier)
+node_t* create_goto_statement_node(int line_no, node_t* identifier)
 {
     node_t* node = create_node(NODE_GOTO, line_no);
     goto_statement_data* data = (goto_statement_data*) node->data;
@@ -632,7 +637,7 @@ node_t* create_switch_statement_node(int line_no, node_t* expr, node_t* case_blo
     return node;
 }
 
-node_t* create_fast_switch_statement_node(int line_no, char* type, char* identifier, node_t* params, node_t* case_block)
+node_t* create_fast_switch_statement_node(int line_no, node_t* type, node_t* identifier, node_t* params, node_t* case_block)
 {
     node_t* node = create_node(NODE_FAST_SWITCH, line_no);
     fast_switch_data* data = (fast_switch_data*) node->data;
@@ -648,7 +653,7 @@ node_t* create_fast_switch_statement_node(int line_no, char* type, char* identif
     return node;
 }
 
-node_t* create_fswitch_call_node(int line_no, char* identifier, node_t* expr, node_t* arg_block)
+node_t* create_fswitch_call_node(int line_no, node_t* identifier, node_t* expr, node_t* arg_block)
 {
     node_t* node = create_node(NODE_FSWITCH_CALL, line_no);
     fswitch_call_data* data = (fswitch_call_data*) node->data;
